@@ -1,119 +1,108 @@
-import React from 'react';
-import { Form, Input, Button, Card, Typography, Alert, Divider } from 'antd';
-import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../hooks/redux.hooks';
-import { loginUser } from '../store/authThunks';
-import { LoginCredentials } from '../types/auth.types';
-
+import React from "react";
+import { Form, Input, Button, Typography } from "antd";
+import {
+  EyeInvisibleOutlined,
+  EyeOutlined,
+} from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../hooks/redux.hooks";
+import { loginUser } from "../store/authThunks";
+import { LoginCredentials } from "../types/auth.types";
+import loginimage from "../images/login-bg.png";
 const { Title, Text } = Typography;
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { isLoading } = useAppSelector((state) => state.auth);
   const [form] = Form.useForm();
 
   const handleLogin = async (values: LoginCredentials) => {
     try {
       await dispatch(loginUser(values)).unwrap();
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl rounded-2xl border-0">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <UserOutlined className="text-2xl text-white" />
-          </div>
-          <Title level={2} className="!mb-2">Welcome Back</Title>
-          <Text type="secondary">Sign in to your ERP account</Text>
-        </div>
+    <div className="min-h-screen  flex">
+      {/* Left Section (Image) */}
+      {/* <div
+        className="hidden md:flex w-1/2 bg-cover bg-center"
+      > */}
+      <div className="hidden bg-black h-[100vh] md:flex min-w-1/2">
+        <img src={loginimage} alt="Login" className="w-full h-full bg-cover " />
+      </div>
 
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            showIcon
-            className="mb-4 rounded-lg"
-          />
-        )}
+      {/* </div> */}
 
-        <Form
-          form={form}
-          name="login"
-          onFinish={handleLogin}
-          layout="vertical"
-          size="large"
-        >
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: 'Please input your email!' },
-              { type: 'email', message: 'Please enter a valid email!' }
-            ]}
-          >
-            <Input
-              prefix={<UserOutlined className="text-neutral-400" />}
-              placeholder="Enter your email"
-              className="rounded-lg"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            label="Password"
-            rules={[{ required: true, message: 'Please input your password!' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined className="text-neutral-400" />}
-              placeholder="Enter your password"
-              className="rounded-lg"
-              iconRender={(visible) => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isLoading}
-              className="w-full rounded-lg h-12 bg-primary-500 border-primary-500 hover:bg-primary-600 hover:border-primary-600"
-            >
-              Sign In
-            </Button>
-          </Form.Item>
-        </Form>
-
-        <Divider className="my-6">
-          <Text type="secondary">Demo Credentials</Text>
-        </Divider>
-
-        <div className="bg-neutral-50 rounded-lg p-4 mb-6 text-sm">
-          <div className="grid grid-cols-1 gap-2">
-            <div>
-              <Text strong>Admin:</Text> admin@erp.com / admin123
-            </div>
-            <div>
-              <Text strong>User:</Text> user@erp.com / user123
-            </div>
-          </div>
-        </div>
-
-        <div className="text-center">
-          <Text type="secondary">
-            Don't have an account?{' '}
-            <Link to="/auth/signup" className="font-semibold text-primary-500 hover:text-primary-600">
-              Sign up
-            </Link>
+      {/* Right Section (Form) */}
+      <div className="flex w-full md:w-1/2 items-center justify-center p-8">
+        <div className="max-w-md w-full">
+          <Title level={2} className="!mb-2 !font-bold text-textheading">
+            Dudiya MMES
+          </Title>
+          <Text className="text-normaltext text-md">
+            Clarity gives you the blocks and components you need to create a
+            truly professional website.
           </Text>
+
+          <Form
+            form={form}
+            name="login"
+            onFinish={handleLogin}
+            layout="vertical"
+            size="large"
+            className="mt-4"
+          >
+            {/* Email */}
+            <Form.Item
+              name="email"
+              label="Email ID"
+              rules={[
+                { required: true, message: "Please input your email!" },
+                { type: "email", message: "Please enter a valid email!" },
+              ]}
+            >
+              <Input
+                // prefix={<UserOutlined className="text-neutral-400" />}
+                // placeholder="Enter your email"
+                className="rounded-lg !bg-[#CBD5E1] border-cardbgblue"
+              />
+            </Form.Item>
+
+            {/* Password */}
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[
+                { required: true, message: "Please input your password!" },
+              ]}
+            >
+              <Input.Password
+                rootClassName="rounded-lg !bg-[#CBD5E1] border border-cardbgblue"
+                iconRender={(visible) =>
+                  visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
+                }
+              />
+            </Form.Item>
+
+            {/* Login Button */}
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isLoading}
+                className="w-fit h-11 rounded-full bg-blue"
+              >
+                Log In →
+              </Button>
+            </Form.Item>
+          </Form>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

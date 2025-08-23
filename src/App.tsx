@@ -5,19 +5,18 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { store } from './store/store';
 import {  useAppDispatch } from './hooks/redux.hooks';
 import { initializeAuth } from './store/authSlice';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
+// import LoginPage from './pages/LoginPage';
+// import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
-import ProtectedRoute from './components/ProtectedRoute';
-import PublicRoute from './components/PublicRoute';
-
+import FieldUsers from './pages/FieldUsersForm';
+import SingleUserFormPage from './pages/SingleUserFormPage';
+// import ProtectedRoute from './components/ProtectedRoute';
+// import PublicRoute from './components/PublicRoute';
 const AppContent: React.FC = () => {
   const dispatch = useAppDispatch();
-
   useEffect(() => {
     dispatch(initializeAuth());
   }, [dispatch]);
-
   return (
     <Router>
       <Routes>
@@ -25,7 +24,7 @@ const AppContent: React.FC = () => {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         
         {/* Public routes */}
-        <Route 
+        {/* <Route 
           path="/auth/login" 
           element={
             <PublicRoute>
@@ -40,17 +39,33 @@ const AppContent: React.FC = () => {
               <SignupPage />
             </PublicRoute>
           } 
-        />
+        /> */}
         
         {/* Protected routes */}
         <Route 
           path="/dashboard" 
           element={
-            <ProtectedRoute>
+            // <ProtectedRoute>
               <DashboardPage />
-            </ProtectedRoute>
+            // </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/dashboard/fieldusers" 
+          element={
+            // <ProtectedRoute>
+              <FieldUsers/>
+            // </ProtectedRoute>
+          } 
+        />
+<Route 
+  path="/dashboard/fieldusers/:id" 
+  element={
+    // <ProtectedRoute>
+      < SingleUserFormPage/>
+    // </ProtectedRoute>
+  } 
+/>
         
         {/* Catch all route - redirect to dashboard */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -65,11 +80,11 @@ const App: React.FC = () => {
       <ConfigProvider
         theme={{
           token: {
-            colorPrimary: '#1890ff',
+            colorPrimary: '#2563EB',
             colorSuccess: '#52c41a',
             colorWarning: '#faad14',
             colorError: '#f5222d',
-            colorInfo: '#1890ff',
+            colorInfo: '#D0DFFF',
             borderRadius: 8,
             fontFamily: 'Inter, system-ui, sans-serif',
           },

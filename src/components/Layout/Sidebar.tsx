@@ -1,5 +1,7 @@
 import React from 'react';
-import { Layout, Menu, Avatar, Typography, Button } from 'antd';
+import { Layout, Menu, 
+  // Avatar,
+   Typography, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
   DashboardOutlined,
@@ -129,7 +131,7 @@ const Sidebar: React.FC = () => {
         </div>
 
         {/* User Profile */}
-        <div className="p-4 border-b border-neutral-200">
+        {/* <div className="p-4 border-b border-neutral-200">
           <div className="flex items-center space-x-3">
             <Avatar
               size={sidebarCollapsed ? 32 : 48}
@@ -149,7 +151,7 @@ const Sidebar: React.FC = () => {
             )}
           </div>
         </div>
-
+ */}
         {/* Navigation Menu */}
         <div className="flex-1 overflow-hidden">
           <Menu

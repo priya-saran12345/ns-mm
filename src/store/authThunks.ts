@@ -14,7 +14,6 @@ export const loginUser = createAsyncThunk<
   async (credentials, { dispatch, rejectWithValue }) => {
     try {
       dispatch(setError(null));
-
       // Simulate API call
       await mockApiDelay(1000);
 

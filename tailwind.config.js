@@ -88,7 +88,15 @@ export default {
           700: '#434343',
           800: '#262626',
           900: '#1f1f1f',
-        }
+        },
+        blue:'#2563EB',
+        sidebarblue:'#D0DFFF',
+        cardbgblue:'#2563EB33',
+        inputbg:'#CBD5E1',
+        textheading:'#090914',
+        lighttext:'#71717A',
+        chartbg:"#F6F8FF",
+        normaltext:'#52525B',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
