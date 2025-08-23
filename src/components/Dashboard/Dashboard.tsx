@@ -92,9 +92,13 @@ const Dashboard: React.FC = () => {
       title: <span className="text-lighttext font-semibold">Action</span>,
       key: "action",
       render: () => (
-        <div  className="bg-blue text-white flex gap-2 items-center  rounded-full px-3 py-1 w-fit">
-          <EyeOutlined />View
-        </div>
+    <div
+      className="bg-blue text-white flex gap-2 cursro-pointer items-center rounded-full px-3 py-1 w-fit cursor-pointer"
+      onClick={() => navigate(`/dashboard/fieldusers/1`)}
+    >
+      <EyeOutlined />
+      View
+    </div>
       ),
     },
   ];
