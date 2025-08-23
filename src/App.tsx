@@ -10,6 +10,8 @@ import { initializeAuth } from './store/authSlice';
 import DashboardPage from './pages/DashboardPage';
 import FieldUsers from './pages/FieldUsersForm';
 import SingleUserFormPage from './pages/SingleUserFormPage';
+import VillageMasterData from './pages/VillageMasterData';
+import BankMasterData from './pages/BankMaster';
 // import ProtectedRoute from './components/ProtectedRoute';
 // import PublicRoute from './components/PublicRoute';
 const AppContent: React.FC = () => {
@@ -63,6 +65,22 @@ const AppContent: React.FC = () => {
   element={
     // <ProtectedRoute>
       < SingleUserFormPage/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/master/villagedata" 
+  element={
+    // <ProtectedRoute>
+      < VillageMasterData/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/master/bank-master" 
+  element={
+    // <ProtectedRoute>
+      < BankMasterData/>
     // </ProtectedRoute>
   } 
 />

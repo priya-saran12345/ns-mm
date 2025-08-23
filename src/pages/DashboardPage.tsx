@@ -1,6 +1,6 @@
 import React from 'react';
 import MainLayout from '../components/Layout/MainLayout';
-import Dashboard from '../components/Dashboard/Dashboard';
+import Dashboard from '../components/Dashboard/dashboard/Dashboard';
 
 const DashboardPage: React.FC = () => {
   return (

@@ -1,6 +1,6 @@
 import React from 'react';
 import MainLayout from '../components/Layout/MainLayout';
-import FieldAgentTable from '../components/Dashboard/FieldAgentTable';
+import FieldAgentTable from '../components/Dashboard/dashboard/FieldAgentTable';
 
 const DashboardPage: React.FC = () => {
   return (

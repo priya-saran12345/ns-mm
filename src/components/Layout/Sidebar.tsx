@@ -1,104 +1,160 @@
-import React from 'react';
-import { Layout, Menu, 
-  // Avatar,
-   Typography, Button } from 'antd';
-import { useNavigate } from 'react-router-dom';
+// src/components/Sidebar.tsx
+import React, { useState, useEffect } from "react";
+import { Layout, Menu } from "antd";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAppSelector, useAppDispatch } from "../../hooks/redux.hooks";
+import { toggleSidebar } from "../../store/uiSlice";
+import { logout } from "../../store/authSlice";
 import {
-  DashboardOutlined,
-  UserOutlined,
-  ShoppingCartOutlined,
-  BarChartOutlined,
-  SettingOutlined,
-  TeamOutlined,
-  FileTextOutlined,
-  WalletOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  LogoutOutlined,
-} from '@ant-design/icons';
-import { useAppSelector, useAppDispatch } from '../../hooks/redux.hooks';
-import { toggleSidebar } from '../../store/uiSlice';
-import { logout } from '../../store/authSlice';
-import { SidebarItem } from '../../types/ui.types';
+  FiHome,
+  FiUsers,
+  FiSettings,
+  FiLogOut,
+  FiDatabase,
+  FiTruck,
+  FiDollarSign,
+  FiBarChart2,
+} from "react-icons/fi";
 
 const { Sider } = Layout;
-const { Text } = Typography;
+
+// Sidebar Config JSON
+export const sidebarItems = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: <FiHome size={18} />,
+    path: "/dashboard",
+  },
+  {
+    key: "masterData",
+    label: "Master Data",
+    icon: <FiDatabase size={18} />,
+    children: [
+      { key: "villagemasterdata", label: "Village Master Data", path: "/master/villagedata" },
+      { key: "bankmasterdata", label: "Bank Master Data", path: "/master/bank-master" },
+    ],
+  },
+  {
+    key: "userManagement",
+    label: "User Management",
+    icon: <FiUsers size={18} />,
+    children: [
+      { key: "users", label: "User Management", path: "/users" },
+      { key: "roles", label: "Role Management", path: "/roles" },
+    ],
+  },
+  {
+    key: "transport",
+    label: "Transport & Logistics",
+    icon: <FiTruck size={18} />,
+    children: [
+      { key: "transporters", label: "Transporters", path: "/transport/transporters" },
+      { key: "vehicles", label: "Vehicles", path: "/transport/vehicles" },
+      { key: "vehicleBillingType", label: "Vehicle Billing Type", path: "/transport/vehicle-billing" },
+      { key: "fuelRate", label: "Fuel Rate", path: "/transport/fuel-rate" },
+      { key: "mobileOilRate", label: "Mobile Oil Rate", path: "/transport/mobile-oil-rate" },
+      { key: "transporterPaymentHead", label: "Transporter Payment Head", path: "/transport/payment-head" },
+      { key: "vehicleTransporterHead", label: "Vehicle Transporter Head", path: "/transport/vehicle-payment" },
+      { key: "routeTime", label: "Route & Time", path: "/transport/route-time" },
+    ],
+  },
+  {
+    key: "finance",
+    label: "Finance",
+    icon: <FiDollarSign size={18} />,
+    children: [
+      { key: "payments", label: "Payments", path: "/finance/payments" },
+      { key: "billing", label: "Billing", path: "/finance/billing" },
+      { key: "invoices", label: "Invoices", path: "/finance/invoices" },
+    ],
+  },
+  {
+    key: "reports",
+    label: "Reports",
+    icon: <FiBarChart2 size={18} />,
+    children: [
+      { key: "collection", label: "Milk Collection Report", path: "/reports/collection" },
+      { key: "transport", label: "Transport Report", path: "/reports/transport" },
+      { key: "finance", label: "Finance Report", path: "/reports/finance" },
+    ],
+  },
+  {
+    key: "settings",
+    label: "Settings",
+    icon: <FiSettings size={18} />,
+    path: "/settings",
+    bottom: true,
+  },
+  {
+    key: "logout",
+    label: "Logout",
+    icon: <FiLogOut size={18} />,
+    action: "logout",
+    bottom: true,
+  },
+];
 
 const Sidebar: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { sidebarCollapsed } = useAppSelector((state) => state.ui);
-  const { user } = useAppSelector((state) => state.auth);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/auth/login');
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
+
+  const findParentKey = (items: any[], path: string): string | null => {
+    for (const item of items) {
+      if (item.children) {
+        if (item.children.some((child: any) => child.path === path)) {
+          return item.key;
+        }
+        const nested = findParentKey(item.children, path);
+        if (nested) return nested;
+      }
+    }
+    return null;
   };
 
-  const sidebarItems: SidebarItem[] = [
-    {
-      key: 'dashboard',
-      label: 'Dashboard',
-      icon: <DashboardOutlined />,
-      path: '/dashboard',
-    },
-    {
-      key: 'users',
-      label: 'Users',
-      icon: <TeamOutlined />,
-      path: '/users',
-      roles: ['admin', 'manager'],
-    },
-    {
-      key: 'products',
-      label: 'Products',
-      icon: <ShoppingCartOutlined />,
-      path: '/products',
-    },
-    {
-      key: 'orders',
-      label: 'Orders',
-      icon: <FileTextOutlined />,
-      path: '/orders',
-    },
-    {
-      key: 'analytics',
-      label: 'Analytics',
-      icon: <BarChartOutlined />,
-      path: '/analytics',
-      roles: ['admin', 'manager'],
-    },
-    {
-      key: 'finance',
-      label: 'Finance',
-      icon: <WalletOutlined />,
-      path: '/finance',
-      roles: ['admin'],
-    },
-    {
-      key: 'profile',
-      label: 'Profile',
-      icon: <UserOutlined />,
-      path: '/profile',
-    },
-    {
-      key: 'settings',
-      label: 'Settings',
-      icon: <SettingOutlined />,
-      path: '/settings',
-      roles: ['admin'],
-    },
-  ];
+  useEffect(() => {
+    const parentKey = findParentKey(sidebarItems, location.pathname);
+    if (parentKey) setOpenKeys([parentKey]);
+  }, [location.pathname]);
 
-  const filteredItems = sidebarItems.filter(item => 
-    !item.roles || item.roles.includes(user?.role || 'user')
-  );
+  const handleMenuClick = (item: any) => {
+    if (item.action === "logout") {
+      dispatch(logout());
+      navigate("/auth/login");
+    } else if (item.path) {
+      navigate(item.path);
+    }
+  };
 
-  const menuItems = filteredItems.map(item => ({
-    key: item.key,
-    icon: item.icon,
-    label: item.label,
-  }));
+  const onOpenChange = (keys: string[]) => {
+    const latestOpenKey = keys.find((key) => !openKeys.includes(key));
+    setOpenKeys(latestOpenKey ? [latestOpenKey] : []);
+  };
+
+  const topItems = sidebarItems.filter((item) => !item.bottom);
+  const bottomItems = sidebarItems.filter((item) => item.bottom);
+
+  const buildMenuItems = (items: any[]) =>
+    items.map((item) => {
+      if (item.children) {
+        return {
+          key: item.key,
+          icon: item.icon,
+          label: item.label,
+          children: buildMenuItems(item.children),
+        };
+      }
+      return {
+        key: item.path || item.key,
+        icon: item.icon,
+        label: item.label,
+        onClick: () => handleMenuClick(item),
+      };
+    });
 
   return (
     <Sider
@@ -106,76 +162,45 @@ const Sidebar: React.FC = () => {
       collapsed={sidebarCollapsed}
       onCollapse={() => dispatch(toggleSidebar())}
       trigger={null}
-      width={280}
+      width={260}
+      style={{
+        height: "98vh",
+        position: "sticky",
+        top: "10px",
+        overflow: "hidden",
+      }}
       className="bg-white border-r border-neutral-200 shadow-sm animate-slide-in"
     >
       <div className="flex flex-col h-full">
-        {/* Logo and Toggle */}
-        <div className="p-4 border-b border-neutral-200">
-          <div className="flex items-center justify-between">
-            {!sidebarCollapsed && (
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                  <Text className="text-white font-bold text-sm">ERP</Text>
-                </div>
-                <Text className="font-bold text-lg text-neutral-800">Admin Panel</Text>
-              </div>
-            )}
-            <Button
-              type="text"
-              icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => dispatch(toggleSidebar())}
-              className="text-neutral-600 hover:text-primary-500 hover:bg-primary-50"
-            />
+        {/* Logo Section */}
+        <div className="p-4 border-b border-neutral-200 flex items-center justify-center">
+          <div className="w-28 h-12 bg-blue-500 rounded-md flex items-center justify-center text-white font-semibold">
+            Logo Placement
           </div>
         </div>
 
-        {/* User Profile */}
-        {/* <div className="p-4 border-b border-neutral-200">
-          <div className="flex items-center space-x-3">
-            <Avatar
-              size={sidebarCollapsed ? 32 : 48}
-              src={user?.avatar}
-              icon={<UserOutlined />}
-              className="bg-primary-500"
-            />
-            {!sidebarCollapsed && (
-              <div className="flex-1 min-w-0">
-                <Text className="font-semibold text-neutral-800 block truncate">
-                  {user?.name}
-                </Text>
-                <Text className="text-xs text-neutral-500 block truncate capitalize">
-                  {user?.role}
-                </Text>
-              </div>
-            )}
-          </div>
-        </div>
- */}
-        {/* Navigation Menu */}
-        <div className="flex-1 overflow-hidden">
+        {/* Scrollable Menu */}
+        <div className="flex-1 overflow-auto custom-sidebar">
           <Menu
             mode="inline"
-            defaultSelectedKeys={['dashboard']}
-            items={menuItems}
+            selectedKeys={[location.pathname]}
+            items={buildMenuItems(topItems)}
+            openKeys={openKeys}
+            onOpenChange={onOpenChange}
             className="border-r-0 bg-transparent"
-            style={{
-              fontSize: '14px',
-            }}
+            style={{ fontSize: "14px" }}
           />
         </div>
 
-        {/* Logout Button */}
-        <div className="p-4 border-t border-neutral-200">
-          <Button
-            type="text"
-            icon={<LogoutOutlined />}
-            onClick={handleLogout}
-            className="w-full justify-start text-error-500 hover:text-error-600 hover:bg-error-50"
-            size="large"
-          >
-            {!sidebarCollapsed && 'Logout'}
-          </Button>
+        {/* Bottom Menu */}
+        <div className="border-t border-neutral-200 custom-sidebar">
+          <Menu
+            mode="inline"
+            selectable={false}
+            items={buildMenuItems(bottomItems)}
+            className="border-r-0 bg-transparent"
+            style={{ fontSize: "14px" }}
+          />
         </div>
       </div>
     </Sider>
