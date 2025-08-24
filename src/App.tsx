@@ -20,6 +20,10 @@ import FormData from './pages/FormData';
 import FormList from './pages/FormList';
 import MemberCode from './pages/MemberCode';
 import FolioNumber from './pages/FolioNumber';
+import Facilitator from './pages/Facilitator';
+import Approvaluser from './pages/Approvaluser';
+import MCC_mpp from './pages/Mcc-Mpp';
+import Old_member from './pages/Old-member';
 // import ProtectedRoute from './components/ProtectedRoute';
 // import PublicRoute from './components/PublicRoute';
 const AppContent: React.FC = () => {
@@ -153,6 +157,38 @@ const AppContent: React.FC = () => {
   element={
     // <ProtectedRoute>
       < FolioNumber/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/utility/facilitator" 
+  element={
+    // <ProtectedRoute>
+      < Facilitator/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/utility/approvaluser" 
+  element={
+    // <ProtectedRoute>
+      < Approvaluser/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/utility/mcc_mpp-transfer" 
+  element={
+    // <ProtectedRoute>
+      < MCC_mpp/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/utility/old-member" 
+  element={
+    // <ProtectedRoute>
+      < Old_member/>
     // </ProtectedRoute>
   } 
 />

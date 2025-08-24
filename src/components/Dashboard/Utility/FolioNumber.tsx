@@ -3,17 +3,13 @@ import { Upload, Button, message } from "antd";
 import type { UploadProps, RcFile } from "antd/es/upload";
 import { InboxOutlined, DownloadOutlined, UploadOutlined } from "@ant-design/icons";
 import BradCrumb from "../BreadCrumb";
-
 const ACCEPT =
   ".jpg,.jpeg,.png,.pdf,.mp4"; // matches screenshot text (JPEG, PNG, PDF, MP4)
-
 const MAX_MB = 50;
 const MAX_SIZE = MAX_MB * 1024 * 1024;
-
 const MemberCodeImport: React.FC = () => {
   const [file, setFile] = useState<RcFile | null>(null);
   const [importing, setImporting] = useState(false);
-
   const beforeUpload: UploadProps["beforeUpload"] = (f) => {
     if (!ACCEPT.split(",").some(ext => f.name.toLowerCase().endsWith(ext.trim()))) {
       message.error("Unsupported file type. Use JPEG, PNG, PDF, or MP4.");
@@ -26,11 +22,9 @@ const MemberCodeImport: React.FC = () => {
     setFile(f as RcFile);
     return false; // prevent auto-upload
   };
-
   const onRemove = () => {
     setFile(null);
   };
-
   const handleFormatDownload = () => {
     // sample CSV; change columns if you already have a format
     const csv = "member_code,folio_number\n1100100100101000,12345\n";
@@ -42,7 +36,6 @@ const MemberCodeImport: React.FC = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
-
   const handleImport = async () => {
     if (!file) return;
     try {
@@ -71,13 +64,10 @@ const MemberCodeImport: React.FC = () => {
           <h2 className="text-lg font-semibold">Folio Number</h2>
           <p className="text-sm text-gray-500">Lorem ipsum dolor sit amet, consectetur adipis.</p>
         </div>
-
         <div className="relative  rounded-xl p-4">
           {/* Section header */}
           <div className="text-sm font-medium mb-2">Import Folio Number</div>
-
           {/* floating avatar circle (optional, matches screenshot vibe) */}
-
           {/* Drag & Drop zone */}
           <Upload.Dragger
             className=" rounded-xl py-10 hover:!border-blue-400"
@@ -121,5 +111,4 @@ const MemberCodeImport: React.FC = () => {
     </>
   );
 };
-
 export default MemberCodeImport;
