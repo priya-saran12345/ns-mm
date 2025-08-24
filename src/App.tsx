@@ -12,6 +12,9 @@ import FieldUsers from './pages/FieldUsersForm';
 import SingleUserFormPage from './pages/SingleUserFormPage';
 import VillageMasterData from './pages/VillageMasterData';
 import BankMasterData from './pages/BankMaster';
+import AnimalBreed from './pages/AnimalBreed';
+import AnimalType from './pages/AnimalType';
+import Roles from './pages/Roles';
 // import ProtectedRoute from './components/ProtectedRoute';
 // import PublicRoute from './components/PublicRoute';
 const AppContent: React.FC = () => {
@@ -81,6 +84,30 @@ const AppContent: React.FC = () => {
   element={
     // <ProtectedRoute>
       < BankMasterData/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/master/animal-breed-master" 
+  element={
+    // <ProtectedRoute>
+      < AnimalBreed/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/master/animal-type-master" 
+  element={
+    // <ProtectedRoute>
+      < AnimalType/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/master/roles" 
+  element={
+    // <ProtectedRoute>
+      < Roles/>
     // </ProtectedRoute>
   } 
 />
