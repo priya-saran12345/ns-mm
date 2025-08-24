@@ -15,6 +15,8 @@ import BankMasterData from './pages/BankMaster';
 import AnimalBreed from './pages/AnimalBreed';
 import AnimalType from './pages/AnimalType';
 import Roles from './pages/Roles';
+import ApprovalHierarchyPage from './pages/ApprovalHierarchy';
+import FormData from './pages/FormData';
 // import ProtectedRoute from './components/ProtectedRoute';
 // import PublicRoute from './components/PublicRoute';
 const AppContent: React.FC = () => {
@@ -108,6 +110,22 @@ const AppContent: React.FC = () => {
   element={
     // <ProtectedRoute>
       < Roles/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/master/approval-hierarchy" 
+  element={
+    // <ProtectedRoute>
+      < ApprovalHierarchyPage/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/master/form-data" 
+  element={
+    // <ProtectedRoute>
+      < FormData/>
     // </ProtectedRoute>
   } 
 />

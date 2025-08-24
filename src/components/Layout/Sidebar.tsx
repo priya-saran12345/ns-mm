@@ -37,6 +37,7 @@ export const sidebarItems = [
       { key: "animalTypemaster", label: "Animal Type Master ", path: "/master/animal-type-master" },
       { key: "Roles", label: "Roles Master ", path: "/master/roles" },
       { key: "Approvalhierarchy", label: "Approval Hierarchy ", path: "/master/approval-hierarchy" },
+      { key: "FormData", label: "Form Data ", path: "/master/form-data" },
     ],
   },
   {
