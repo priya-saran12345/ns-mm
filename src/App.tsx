@@ -17,6 +17,9 @@ import AnimalType from './pages/AnimalType';
 import Roles from './pages/Roles';
 import ApprovalHierarchyPage from './pages/ApprovalHierarchy';
 import FormData from './pages/FormData';
+import FormList from './pages/FormList';
+import MemberCode from './pages/MemberCode';
+import FolioNumber from './pages/FolioNumber';
 // import ProtectedRoute from './components/ProtectedRoute';
 // import PublicRoute from './components/PublicRoute';
 const AppContent: React.FC = () => {
@@ -126,6 +129,30 @@ const AppContent: React.FC = () => {
   element={
     // <ProtectedRoute>
       < FormData/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/utility/form-list" 
+  element={
+    // <ProtectedRoute>
+      < FormList/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/utility/member-code" 
+  element={
+    // <ProtectedRoute>
+      < MemberCode/>
+    // </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/utility/folio-number" 
+  element={
+    // <ProtectedRoute>
+      < FolioNumber/>
     // </ProtectedRoute>
   } 
 />

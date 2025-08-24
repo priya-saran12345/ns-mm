@@ -97,6 +97,8 @@ export default {
         lighttext:'#71717A',
         chartbg:"#F6F8FF",
         normaltext:'#52525B',
+        red:'#EC221F',
+        lightorange:'#FFAE4C',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
