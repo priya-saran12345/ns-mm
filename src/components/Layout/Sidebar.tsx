@@ -13,6 +13,7 @@ import {
   FiTruck,
   FiBarChart2,
   FiDollarSign,
+  FiUsers,
 } from "react-icons/fi";
 
 const { Sider } = Layout;

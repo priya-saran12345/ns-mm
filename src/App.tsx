@@ -61,6 +61,7 @@ const AppContent: React.FC = () => {
 
   // DRY route table for “in-app” pages
   const appRoutes: { path: string; element: React.ReactElement }[] = [
+    { path: "/", element: <DashboardPage /> },
     { path: "/dashboard", element: <DashboardPage /> },
     { path: "/dashboard/fieldusers", element: <FieldUsers /> },
     { path: "/dashboard/fieldusers/:id", element: <SingleUserFormPage /> },
