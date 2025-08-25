@@ -7,12 +7,10 @@ import { toggleSidebar } from "../../store/uiSlice";
 import { logout } from "../../store/authSlice";
 import {
   FiHome,
-  FiUsers,
   FiSettings,
   FiLogOut,
   FiDatabase,
   FiTruck,
-  FiDollarSign,
   FiBarChart2,
 } from "react-icons/fi";
 
@@ -87,19 +85,19 @@ export const sidebarItems = [
     label: "Reports",
     icon: <FiBarChart2 size={18} />,
     children: [
-      { key: "memberrepo", label: "Member Form Report", path: "/reports/collection" },
-      { key: "animalrepo", label: "Animal Report", path: "/reports/transport" },
-      { key: "generatedrepo", label: "Generated Report", path: "/reports/finance" },
+      { key: "memberrepo", label: "Member Form Report", path: "/reports/member" },
+      { key: "animalrepo", label: "Animal Report", path: "/reports/animal-report" },
+      { key: "generatedrepo", label: "Generated Report", path: "/reports/generated-report" },
     ],
   },
-  // {
-  //   key: "fedi",
-  //   label: "Form Edit/Delete/Inactive",
-  //   icon: <FiBarChart2 size={18} />,
-  //   children: [
-  //     { key: "allform", label: "All Forms", path: "/reports/collection" },
-  //   ],
-  // },
+  {
+    key: "fedi",
+    label: "Form Edit/Delete/Inactive",
+    icon: <FiBarChart2 size={18} />,
+    children: [
+      { key: "allform", label: "All Forms", path: "/dashboard/edit-inactive" },
+    ],
+  },
   {
     key: "settings",
     label: "Settings",

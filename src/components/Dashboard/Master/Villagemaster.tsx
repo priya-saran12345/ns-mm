@@ -9,7 +9,8 @@ const MasterData = () => {
 
   // Sample Data for table
   const dataSource = [
-    { key: 1, districtName: "STATE BANK OF INDIA", districtCode: "SBIN0003527", villageName: "Asarganj", hamletCode: "Asarganj" },
+    { key: 1, districtName: "STATE BANK OF INDIA", districtCode: "SBIN0003527",
+       villageName: "Asarganj", hamletCode: "Asarganj" },
     { key: 2, districtName: "STATE BANK OF INDIA", districtCode: "SBIN0003527", villageName: "Asarganj", hamletCode: "Asarganj" },
     { key: 3, districtName: "STATE BANK OF INDIA", districtCode: "SBIN0003527", villageName: "Asarganj", hamletCode: "Asarganj" },
     { key: 4, districtName: "STATE BANK OF INDIA", districtCode: "SBIN0003527", villageName: "Asarganj", hamletCode: "Asarganj" },
