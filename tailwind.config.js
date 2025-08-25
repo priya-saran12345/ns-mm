@@ -98,6 +98,7 @@ export default {
         chartbg:"#F6F8FF",
         normaltext:'#52525B',
         red:'#EC221F',
+        green:"#22C55E",
         lightorange:'#FFAE4C',
       },
       fontFamily: {

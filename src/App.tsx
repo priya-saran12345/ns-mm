@@ -31,7 +31,8 @@ import Old_member from "./pages/Utility/Old-member";
 import MemberReport from "./pages/Report/MemberReport";
 import GeneratedReports from "./pages/Report/GeneratedReports";
 import AnimalReport from "./pages/Report/AnimalReport";
-// import EditInactive from "./pages/EditInactive"; // <- uncomment when available
+import EditInactive from "./pages/EditInactive"; // <- uncomment when available
+import FinalApproval from "./pages/FinalApproval"; // <- uncomment when available
 
 // import ProtectedRoute from "./components/ProtectedRoute";
 // import PublicRoute from "./components/PublicRoute";
@@ -84,7 +85,8 @@ const AppContent: React.FC = () => {
     { path: "/reports/generated-report", element: <GeneratedReports /> },
     { path: "/reports/animal-report", element: <AnimalReport /> },
 
-    // { path: "/dashboard/edit-inactive", element: <EditInactive /> },
+    { path: "/dashboard/edit-inactive", element: <EditInactive /> },
+    { path: "/dashboard/final-approval", element: <FinalApproval /> },
   ];
 
   return (

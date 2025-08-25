@@ -3,8 +3,8 @@ import { Table, Input, Button, Modal, Upload, Form } from "antd";
 import { DownloadOutlined, SearchOutlined } from "@ant-design/icons";
 import BradCrumb from "./BreadCrumb";
 import {  MdOutlineCloudUpload } from "react-icons/md";
-import { FaEdit } from "react-icons/fa";
-import { FaBan } from "react-icons/fa6";
+import {  FaCheck } from "react-icons/fa6";
+import { RxCross2 } from "react-icons/rx";
 const MasterData = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -86,14 +86,26 @@ const MasterData = () => {
       render: (_: any, record: any) => (
         <div className="flex gap-5">
           <div
+            className="bg-green text-white w-fit px-4 py-1 flex items-center gap-1 rounded-full cursor-pointer"
+            onClick={() => {
+              // handle delete here
+              console.log("Deleting record:", record);
+            }}
+          >
+            <FaCheck
+ className="text-[18px]" />
+           
+          </div>
+          <div
             className="bg-[#EC221F] text-white w-fit px-4 py-1 flex items-center gap-1 rounded-full cursor-pointer"
             onClick={() => {
               // handle delete here
               console.log("Deleting record:", record);
             }}
           >
-            <FaBan className="text-[18px]" />
-            Delete
+            <RxCross2
+ className="text-[18px]" />
+           
           </div>
           <div
             className="bg-blue text-white w-fit px-4 py-1 flex items-center gap-1 rounded-full cursor-pointer"
@@ -102,8 +114,8 @@ const MasterData = () => {
               setIsEditOpen(true);
             }}
           >
-            <FaEdit  className="text-[18px]" />
-            
+            {/* <FaEdit  className="text-[18px]" /> */}
+            View
           </div>
         </div>
       ),
@@ -121,7 +133,7 @@ const MasterData = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-lg font-semibold">All Forms</h2>
+            <h2 className="text-lg font-semibold">Final Approval</h2>
             <p className="text-sm text-gray-500">
               Manage animal breed master records here.
             </p>
@@ -138,7 +150,7 @@ const MasterData = () => {
             //   onChange={(e) => setSearch(e.target.value)}
             />
             <Button type="primary" icon={<DownloadOutlined />}>
-              Download
+              Select Updated Status
             </Button>
           </div>
         </div>
@@ -175,8 +187,7 @@ const MasterData = () => {
                   }
                 />
               </Form.Item>
-
-              {/* <Form.Item label="Breed Name" className="font-medium">
+ {/* <Form.Item label="Breed Name" className="font-medium">
                 <Input
                   value={editRecord.breedName}
                   onChange={(e) =>
@@ -188,7 +199,7 @@ const MasterData = () => {
           )}
         </Modal>
 
-        {/* Import Modal */}
+       
         <Modal
           title="Import Animal Breed Data"
           open={isImportOpen}

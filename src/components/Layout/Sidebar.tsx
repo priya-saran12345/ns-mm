@@ -12,6 +12,7 @@ import {
   FiDatabase,
   FiTruck,
   FiBarChart2,
+  FiDollarSign,
 } from "react-icons/fi";
 
 const { Sider } = Layout;
@@ -38,26 +39,26 @@ export const sidebarItems = [
       { key: "FormData", label: "Form Data ", path: "/master/form-data" },
     ],
   },
-  // {
-  //   key: "userManagement",
-  //   label: "User Management",
-  //   icon: <FiUsers size={18} />,
-  //   children: [
-  //     { key: "users", label: "All Users", path: "/users" },
-  //     { key: "roles", label: "Section Alloatment", path: "/roles" },
-  //   ],
-  // },
-  // {
-  //   key: "membersForm",
-  //   label: "Members Form",
-  //   icon: <FiUsers size={18} />,
-  //   children: [
-  //     { key: "approvedmem", label: "Approved Members", path: "/users" },
-  //     { key: "pendingmem", label: "Pending Members", path: "/users" },
-  //     { key: "rejectedmem", label: "Rejected Members", path: "/users" },
-  //     { key: "re-submem", label: "Re-submitted Alloatment", path: "/roles" },
-  //   ],
-  // },
+  {
+    key: "userManagement",
+    label: "User Management",
+    icon: <FiUsers size={18} />,
+    children: [
+      { key: "users", label: "All Users", path: "/users" },
+      { key: "roles", label: "Section Alloatment", path: "/roles" },
+    ],
+  },
+  {
+    key: "membersForm",
+    label: "Members Form",
+    icon: <FiUsers size={18} />,
+    children: [
+      { key: "approvedmem", label: "Approved Members", path: "/users" },
+      { key: "pendingmem", label: "Pending Members", path: "/users" },
+      { key: "rejectedmem", label: "Rejected Members", path: "/users" },
+      { key: "re-submem", label: "Re-submitted Alloatment", path: "/roles" },
+    ],
+  },
   {
     key: "uilities",
     label: "Utilies",
@@ -72,14 +73,14 @@ export const sidebarItems = [
       { key: "oldmember", label: "Old Members", path: "/utility/old-member" },
     ],
   },
-  // {
-  //   key: "finalapproval",
-  //   label: "Final Approval",
-  //   icon: <FiDollarSign size={18} />,
-  //   children: [
-  //     { key: "allforms", label: "All Forms", path: "/finance/payments" },
-  //   ],
-  // },
+  {
+    key: "finalapproval",
+    label: "Final Approval",
+    icon: <FiDollarSign size={18} />,
+    children: [
+      { key: "allforms", label: "All Forms", path: "/dashboard/final-approval" },
+    ],
+  },
   {
     key: "reports",
     label: "Reports",
