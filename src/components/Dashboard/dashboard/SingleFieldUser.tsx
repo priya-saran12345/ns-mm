@@ -79,7 +79,7 @@ const AppTable: React.FC = () => {
       key: "action",
       render: (_, record) => (
         <div
-          className="bg-blue-600 text-white flex gap-2 justify-center py-1 px-3 rounded-full cursor-pointer"
+          className="bg-blue text-white flex gap-2 justify-center py-1 px-3 rounded-full cursor-pointer"
           onClick={() => navigate(`/users/detail/${record.id}`)}
         >
           <EyeOutlined /> View
