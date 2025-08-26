@@ -1,5 +1,5 @@
 import React from 'react';
-import Userdetail from '../../components/Dashboard/UserManagement/userdetail';
+import Userdetail from '../../components/Dashboard/UserManagement/Userdetails';
 
 const DashboardPage: React.FC = () => {
   return (

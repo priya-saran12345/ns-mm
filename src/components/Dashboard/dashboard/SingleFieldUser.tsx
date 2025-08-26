@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Table, Input,  Button } from "antd";
+import { Table, Input } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { EyeOutlined, SearchOutlined } from "@ant-design/icons";
-
-const { Search } = Input;
 import { useNavigate } from "react-router-dom";
 
 interface DataType {
@@ -15,7 +14,7 @@ interface DataType {
 
 const AppTable: React.FC = () => {
   const [searchText, setSearchText] = useState("");
-const navigate = useNavigate();
+  const navigate = useNavigate();
 
   const data: DataType[] = [
     { key: "1", id: "7628", application: "Test", form: "G7405", status: "Approved" },
@@ -26,15 +25,16 @@ const navigate = useNavigate();
     { key: "6", id: "7628", application: "Test", form: "G7405", status: "Submitted" },
   ];
 
+  const q = searchText.toLowerCase();
   const filteredData = data.filter(
     (item) =>
-      item.id.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.application.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.form.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.status.toLowerCase().includes(searchText.toLowerCase())
+      item.id.toLowerCase().includes(q) ||
+      item.application.toLowerCase().includes(q) ||
+      item.form.toLowerCase().includes(q) ||
+      String(item.status).toLowerCase().includes(q)
   );
 
-  const columns = [
+  const columns: ColumnsType<DataType> = [
     {
       title: <span className="text-lighttext font-semibold">ID</span>,
       dataIndex: "id",
@@ -53,87 +53,56 @@ const navigate = useNavigate();
       key: "form",
       render: (text: string) => <span className="font-medium text-textheading">{text}</span>,
     },
-{
-  title: <span className="text-lighttext font-semibold">Status</span>,
-  dataIndex: "status",
-  key: "status",
-  render: (status: string) => {
-    let bgColor = "";
-    let textColor = "";
-    let dotColor = "";
-
-    switch (status) {
-      case "Approved":
-        bgColor = "bg-[#DCFCE7]";
-        textColor = "text-[#14532D]";
-        dotColor = "bg-[#22C55E]";
-        break;
-      case "Pending":
-        bgColor = "bg-[#FEF9C3]";
-        textColor = "text-[#713F12]";
-        dotColor = "bg-[#FACC15]";
-        break;
-      case "Rejected":
-        bgColor = "bg-[#FEE2E2]";
-        textColor = "text-[#7F1D1D]";
-        dotColor = "bg-[#EF4444]";
-        break;
-      case "Submitted":
-        bgColor = "bg-[#C5D7FF]";
-        textColor = "text-[#0B2B73]";
-        dotColor = "bg-blue";
-        break;
-      default:
-        bgColor = "bg-gray-100";
-        textColor = "text-gray-700";
-        dotColor = "bg-gray-500";
-    }
-
-    return (
-      <div
-        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full font-medium ${bgColor} ${textColor}`}
-      >
-        <span className={`h-2 w-2 rounded-full ${dotColor}`}></span>
-        <span className={`${textColor}`}>
-
-        {status}
-        </span>
-      </div>
-    );
-  },
-},
     {
-      title: <span className="text-lighttext font-semibold " >Action</span>,
+      title: <span className="text-lighttext font-semibold">Status</span>,
+      dataIndex: "status",
+      key: "status",
+      render: (status: DataType["status"]) => {
+        let bgColor = "", textColor = "", dotColor = "";
+        switch (status) {
+          case "Approved": bgColor = "bg-[#DCFCE7]"; textColor = "text-[#14532D]"; dotColor = "bg-[#22C55E]"; break;
+          case "Pending":  bgColor = "bg-[#FEF9C3]"; textColor = "text-[#713F12]"; dotColor = "bg-[#FACC15]"; break;
+          case "Rejected": bgColor = "bg-[#FEE2E2]"; textColor = "text-[#7F1D1D]"; dotColor = "bg-[#EF4444]"; break;
+          case "Submitted":bgColor = "bg-[#DBEAFE]"; textColor = "text-[#0B2B73]"; dotColor = "bg-blue-600"; break;
+          default:         bgColor = "bg-gray-100"; textColor = "text-gray-700"; dotColor = "bg-gray-500";
+        }
+        return (
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full font-medium ${bgColor} ${textColor}`}>
+            <span className={`h-2 w-2 rounded-full ${dotColor}`} />
+            <span className={textColor}>{status}</span>
+          </div>
+        );
+      },
+    },
+    {
+      title: <span className="text-lighttext font-semibold">Action</span>,
       key: "action",
-      render: () => (
-        <div   className=" bg-blue text-white flex gap-2 justify-center py-1 rounded-full"
-         onClick={       
-              ()=>`navigate('/users/detail/1')
-}>
-        <EyeOutlined />  View
+      render: (_, record) => (
+        <div
+          className="bg-blue-600 text-white flex gap-2 justify-center py-1 px-3 rounded-full cursor-pointer"
+          onClick={() => navigate(`/users/detail/${record.id}`)}
+        >
+          <EyeOutlined /> View
         </div>
       ),
     },
   ];
 
   return (
-    <div className="p-4 bg-white rounded-xl shadow-md border-[1px] border-slate-200">
+    <div className="p-4 bg-white rounded-xl shadow-md border border-slate-200">
       <div className="flex justify-between items-center mb-4">
         <h2>Aman Sharma</h2>
-    <Input
-      placeholder="Type to search"
-      value={searchText}
-      onChange={(e) => setSearchText(e.target.value)}
-      prefix={<SearchOutlined style={{ color: "#b0b0b0" }} />}
-      style={{
-        width: '30%',
-        borderRadius: 8,
-        border: "1px solid #e5e5e5",
-        padding: "6px 10px",
-      }}
-    />
+        <Input
+          placeholder="Type to search"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          prefix={<SearchOutlined style={{ color: "#b0b0b0" }} />}
+          style={{ width: "30%", borderRadius: 8, border: "1px solid #e5e5e5", padding: "6px 10px" }}
+        />
       </div>
-      <Table
+
+      <Table<DataType>
+        rowKey="key"
         columns={columns}
         dataSource={filteredData}
         pagination={{ pageSize: 5 }}
