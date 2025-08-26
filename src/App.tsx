@@ -33,6 +33,10 @@ import GeneratedReports from "./pages/Report/GeneratedReports";
 import AnimalReport from "./pages/Report/AnimalReport";
 import EditInactive from "./pages/EditInactive"; // <- uncomment when available
 import FinalApproval from "./pages/FinalApproval"; // <- uncomment when available
+import ApprovedMem from "./pages/Member/ApprovedMember"; // <- uncomment when available
+import RejectedMem from "./pages/Member/RejectedMem"; // <- uncomment when available
+import PendingMem from "./pages/Member/PendingMem"; // <- uncomment when available
+import Re_submitted from "./pages/Member/Re-submitted"; // <- uncomment when available
 
 // import ProtectedRoute from "./components/ProtectedRoute";
 // import PublicRoute from "./components/PublicRoute";
@@ -88,6 +92,10 @@ const AppContent: React.FC = () => {
 
     { path: "/dashboard/edit-inactive", element: <EditInactive /> },
     { path: "/dashboard/final-approval", element: <FinalApproval /> },
+    { path: "/users/approved", element: <ApprovedMem /> },
+    { path: "/users/pending", element: < PendingMem/> },
+    { path: "/users/rejected", element: <RejectedMem /> },
+    { path: "/users/re-submitted", element: <Re_submitted /> },
   ];
 
   return (

@@ -54,10 +54,10 @@ export const sidebarItems = [
     label: "Members Form",
     icon: <FiUsers size={18} />,
     children: [
-      { key: "approvedmem", label: "Approved Members", path: "/users" },
-      { key: "pendingmem", label: "Pending Members", path: "/users" },
-      { key: "rejectedmem", label: "Rejected Members", path: "/users" },
-      { key: "re-submem", label: "Re-submitted Alloatment", path: "/roles" },
+      { key: "approvedmem", label: "Approved Members", path: "/users/approved" },
+      { key: "pendingmem", label: "Pending Members", path: "/users/pending" },
+      { key: "rejectedmem", label: "Rejected Members", path: "/users/rejected" },
+      { key: "re-submem", label: "Re-submitted Alloatment", path: "/users/re-submitted" },
     ],
   },
   {
