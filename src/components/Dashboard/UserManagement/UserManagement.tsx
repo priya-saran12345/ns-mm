@@ -15,6 +15,7 @@ import EditUserModal from "./EditUserModal";
 import { IoDocumentText } from "react-icons/io5";
 import { HiMiniArrowRightEndOnRectangle } from "react-icons/hi2";
 import { BsPaperclip } from "react-icons/bs";
+import { useNavigate } from "react-router-dom";
 
 type Row = {
   key: number;
@@ -34,6 +35,7 @@ export default function UserManagement() {
   const [openCreate, setOpenCreate] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [editRow, setEditRow] = useState<Row | null>(null);
+  const navigate = useNavigate();
 
   // sample rows to match your screenshot
   const rows: Row[] = useMemo(
@@ -132,9 +134,13 @@ export default function UserManagement() {
         <div className="flex items-center gap-2">
           {/* small square action buttons to match screenshot */}
           <Tooltip title="Permissions">
-            <Button size="small" className="bg-blue rounded-lg text-[18px] text-white border-0">
-              <IoDocumentText />
-            </Button>
+    <Button
+      size="small"
+      className="bg-blue rounded-lg text-[18px] text-white border-0"
+      onClick={() => navigate("/users/assign-mpp")}
+    >
+      <IoDocumentText />
+    </Button>
           </Tooltip>
           <Tooltip title="Block / Unblock">
             <Button size="small"  className="bg-[#05825F] text-[18px] text-white border-0">

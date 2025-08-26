@@ -39,6 +39,8 @@ import PendingMem from "./pages/Member/PendingMem"; // <- uncomment when availab
 import Re_submitted from "./pages/Member/Re-submitted"; // <- uncomment when available
 import USers from "./pages/UserManagement/UserManagement"; // <- uncomment when available
 import SectionAlloatment from "./pages/UserManagement/SectionAlloatment"; // <- uncomment when available
+import Asignmpp from "./components/Dashboard/UserManagement/AssignMpp"; // <- uncomment when available
+import USerDetail from "./pages/UserManagement/Userdetail"; // <- uncomment when available
 
 // import ProtectedRoute from "./components/ProtectedRoute";
 // import PublicRoute from "./components/PublicRoute";
@@ -87,11 +89,9 @@ const AppContent: React.FC = () => {
     { path: "/utility/approvaluser", element: <Approvaluser /> },
     { path: "/utility/mcc_mpp-transfer", element: <MCC_mpp /> },
     { path: "/utility/old-member", element: <Old_member /> },
-
     { path: "/reports/member", element: <MemberReport /> },
     { path: "/reports/generated-report", element: <GeneratedReports /> },
     { path: "/reports/animal-report", element: <AnimalReport /> },
-
     { path: "/dashboard/edit-inactive", element: <EditInactive /> },
     { path: "/dashboard/final-approval", element: <FinalApproval /> },
     { path: "/users/approved", element: <ApprovedMem /> },
@@ -100,6 +100,8 @@ const AppContent: React.FC = () => {
     { path: "/users/re-submitted", element: <Re_submitted /> },
     { path: "/users", element: <USers /> },
     { path: "/users/section-alloatment", element: <SectionAlloatment /> },
+    { path: "/users/assign-mpp", element: <Asignmpp /> },
+    { path: "/users/detail/:id", element: <USerDetail /> },
   ];
 
   return (

@@ -3,6 +3,7 @@ import { Table, Input,  Button } from "antd";
 import { EyeOutlined, SearchOutlined } from "@ant-design/icons";
 
 const { Search } = Input;
+import { useNavigate } from "react-router-dom";
 
 interface DataType {
   key: string;
@@ -14,6 +15,7 @@ interface DataType {
 
 const AppTable: React.FC = () => {
   const [searchText, setSearchText] = useState("");
+const navigate = useNavigate();
 
   const data: DataType[] = [
     { key: "1", id: "7628", application: "Test", form: "G7405", status: "Approved" },
@@ -104,7 +106,10 @@ const AppTable: React.FC = () => {
       title: <span className="text-lighttext font-semibold " >Action</span>,
       key: "action",
       render: () => (
-        <div   className=" bg-blue text-white flex gap-2 justify-center py-1 rounded-full">
+        <div   className=" bg-blue text-white flex gap-2 justify-center py-1 rounded-full"
+         onClick={       
+              ()=>`navigate('/users/detail/1')
+}>
         <EyeOutlined />  View
         </div>
       ),

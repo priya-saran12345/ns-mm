@@ -12,6 +12,7 @@ import { SearchOutlined } from "@ant-design/icons";
 import { HiEye } from "react-icons/hi";
 import BradCrumb from "../BreadCrumb";
 const { RangePicker } = DatePicker;
+import { useNavigate } from "react-router-dom";
 
 type MemberRow = {
   key: number;
@@ -114,8 +115,10 @@ const ApprovedMemberList = () => {
           <button
             className="bg-blue text-white px-5 border-none py-1 rounded-full flex items-center gap-2"
             onClick={() => {
-              setViewRecord(record);
-              setIsViewOpen(true);
+            //   setViewRecord(record);
+            //   setIsViewOpen(true);
+                                    navigate('/users/detail/1')
+
             }}
           >
             <HiEye className="text-[18px]" />
@@ -132,6 +135,7 @@ const ApprovedMemberList = () => {
   const total = dataSource.length;
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
+const navigate = useNavigate();
 
   return (
     <>

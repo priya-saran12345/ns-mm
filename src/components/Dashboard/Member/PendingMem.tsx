@@ -11,6 +11,7 @@ import {
 import { SearchOutlined } from "@ant-design/icons";
 import { HiEye } from "react-icons/hi";
 import BradCrumb from "../BreadCrumb";
+import { useNavigate } from "react-router-dom";
 
 const { RangePicker } = DatePicker;
 
@@ -43,6 +44,7 @@ const statusChip = (status: MemberRow["status"]) => {
 const ApprovedMemberList = () => {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewRecord, setViewRecord] = useState<MemberRow | null>(null);
+const navigate = useNavigate();
 
   // Filters (mock)
   const [search, setSearch] = useState("");
@@ -114,10 +116,12 @@ const ApprovedMemberList = () => {
         <div className="flex">
           <button
             className="bg-blue text-white px-5 border-none py-1 rounded-full flex items-center gap-2"
-            onClick={() => {
-              setViewRecord(record);
-              setIsViewOpen(true);
-            }}
+             onClick={() => {
+            //   setViewRecord(record);
+            //   setIsViewOpen(true);
+            navigate('/users/detail/1')
+        }}
+
           >
             <HiEye className="text-[18px]" />
             View
