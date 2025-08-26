@@ -37,6 +37,7 @@ import ApprovedMem from "./pages/Member/ApprovedMember"; // <- uncomment when av
 import RejectedMem from "./pages/Member/RejectedMem"; // <- uncomment when available
 import PendingMem from "./pages/Member/PendingMem"; // <- uncomment when available
 import Re_submitted from "./pages/Member/Re-submitted"; // <- uncomment when available
+import USers from "./pages/UserManagement/UserManagement"; // <- uncomment when available
 
 // import ProtectedRoute from "./components/ProtectedRoute";
 // import PublicRoute from "./components/PublicRoute";
@@ -96,6 +97,7 @@ const AppContent: React.FC = () => {
     { path: "/users/pending", element: < PendingMem/> },
     { path: "/users/rejected", element: <RejectedMem /> },
     { path: "/users/re-submitted", element: <Re_submitted /> },
+    { path: "/users", element: <USers /> },
   ];
 
   return (
