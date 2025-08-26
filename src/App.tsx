@@ -20,7 +20,7 @@ import AnimalBreed from "./pages/Master/AnimalBreed";
 import AnimalType from "./pages/Master/AnimalType";
 import Roles from "./pages/Master/Roles";
 import ApprovalHierarchyPage from "./pages/Master/ApprovalHierarchy";
-import FormData from "./pages/Utility/FormList";
+import FormData from "./pages/Master/FormData";
 import FormList from "./pages/Utility/FormList";
 import MemberCode from "./pages/Utility/MemberCode";
 import FolioNumber from "./pages/Utility/FolioNumber";
