@@ -46,7 +46,7 @@ export const sidebarItems = [
     icon: <FiUsers size={18} />,
     children: [
       { key: "users", label: "All Users", path: "/users" },
-      { key: "roles", label: "Section Alloatment", path: "/roles" },
+      { key: "roles", label: "Section Alloatment", path: "/users/section-alloatment" },
     ],
   },
   {
