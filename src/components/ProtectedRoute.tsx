@@ -8,15 +8,16 @@ const ProtectedRoute: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-600">Checking authentication…</p>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center">
+          {/* Blue Spinner */}
+          <div className="loader"></div>
+          {/* Label */}
+          {/* <p className="text-blue-600 mt-4 text-sm font-medium">Checking authentication…</p> */}
         </div>
       </div>
     );
   }
-
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }

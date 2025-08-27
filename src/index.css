@@ -7,12 +7,51 @@
 
 /* Custom Ant Design overrides */
 :root {
-  --ant-color-primary: #1890ff;
+  --ant-color-primary: #2563EB;
   --ant-color-success: #52c41a;
   --ant-color-warning: #faad14;
   --ant-color-error: #f5222d;
-  --ant-color-info: #1890ff;
+  --ant-color-info: #2563EB;
 }
+/* Selected menu item style */
+.app-sidebar .ant-menu-item-selected {
+  background: #D0DFFF !important; /* light gray background */
+  color: #2563EB !important;  
+  font-weight: 600;                   /* black text */
+  border-radius: 50px;                         /* optional rounded highlight */
+}
+
+/* Also force icon to turn black */
+.app-sidebar .ant-menu-item-selected .ant-menu-item-icon {
+  color: #2563EB !important;
+}
+/* HTML: <div class="loader"></div> */
+.loader {
+  width: 50px;
+  aspect-ratio: 1;
+  display: grid;
+  border: 4px solid #0000;
+  border-radius: 50%;
+  border-right-color: #2563EB;
+  animation: l15 1s infinite linear;
+}
+.loader::before,
+.loader::after {    
+  content: "";
+  grid-area: 1/1;
+  margin: 2px;
+  border: inherit;
+  border-radius: 50%;
+  animation: l15 2s infinite;
+}
+.loader::after {
+  margin: 8px;
+  animation-duration: 3s;
+}
+@keyframes l15{ 
+  100%{transform: rotate(1turn)}
+}
+/* Selected menu item style */
 
 /* Custom scrollbar */
 /* ::-webkit-scrollbar {
@@ -70,7 +109,7 @@
   0%, 100% {
     opacity: 1;
   }
-    
+
   50% {
     opacity: 0.5;
   }

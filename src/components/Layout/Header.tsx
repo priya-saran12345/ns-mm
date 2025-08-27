@@ -13,20 +13,16 @@ import { useAppSelector, useAppDispatch } from '../../hooks/redux.hooks';
 import { toggleSidebar } from '../../store/uiSlice';
 import { logout } from '../../store/authSlice';
 import type { MenuProps } from 'antd';
-
 const { Header: AntHeader } = Layout;
-
 const Header: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { sidebarCollapsed, breadcrumbs } = useAppSelector((state) => state.ui);
   const { user } = useAppSelector((state) => state.auth);
-
   const handleLogout = () => {
     dispatch(logout());
     navigate('/auth/login');
   };
-
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'profile',
@@ -69,15 +65,21 @@ const Header: React.FC = () => {
       </div>
 
       <Space size="middle">
-        <Badge count={5} size="small">
-          <Button
-            type="text"
-            icon={<BellOutlined />}
-            className="text-neutral-600 hover:text-primary-500 hover:bg-primary-50"
-            size="large"
-          />
-        </Badge>
 
+<Badge
+  count={5}
+  color="#2563EB"   // your primary blue
+  style={{
+    color: "#fff",   // text color inside badge
+  }}
+>
+  <Button
+    type="text"
+    icon={<BellOutlined />}
+    className="text-neutral-600 text-[20px] hover:text-primary-500 hover:bg-primary-50"
+    size="large"
+  />
+</Badge>
         <Dropdown
           menu={{ items: userMenuItems }}
           trigger={['click']}

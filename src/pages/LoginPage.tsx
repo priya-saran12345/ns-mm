@@ -17,7 +17,6 @@ const LoginPage: React.FC = () => {
 
   // if user was redirected here from a protected route, go back there
   const from = (location.state as any)?.from?.pathname || "/dashboard";
-
   const handleLogin = async (values: LoginCredentials) => {
     try {
       await dispatch(loginUser(values)).unwrap();
@@ -84,11 +83,14 @@ const LoginPage: React.FC = () => {
                 type="primary"
                 htmlType="submit"
                 loading={isLoading}
-                className="w-fit h-11 rounded-full bg-blue"
-              >
+                className="w-fit h-11 rounded-full bg-blue">
                 Log In →
               </Button>
             </Form.Item>
+            <p>
+              for testing use this email id(admin@erp.com) and password (admin123)
+            </p>
+          
           </Form>
         </div>
       </div>

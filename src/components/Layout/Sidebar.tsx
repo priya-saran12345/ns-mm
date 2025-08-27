@@ -1,25 +1,28 @@
-// src/components/Sidebar.tsx
-import React, { useState, useEffect } from "react";
-import { Layout, Menu } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
+import { Layout, Menu, MenuProps } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../../hooks/redux.hooks";
 import { toggleSidebar } from "../../store/uiSlice";
 import { logout } from "../../store/authSlice";
-import {
+ import {
   FiHome,
-  FiSettings,
-  FiLogOut,
   FiDatabase,
-  FiTruck,
   FiBarChart2,
   FiDollarSign,
   FiUsers,
+  FiChevronDown,
 } from "react-icons/fi";
+import { FaRegUser } from "react-icons/fa6";
+import { BsUiChecksGrid } from "react-icons/bs";
+import { FaEdit } from "react-icons/fa";
 
 const { Sider } = Layout;
 
-// Sidebar Config JSON
-export const sidebarItems = [
+/* ----------------------------- CONFIG ----------------------------- */
+type Leaf = { key: string; label: string; path?: string; icon?: React.ReactNode; action?: "logout"; bottom?: boolean };
+type Node = Leaf & { children?: Leaf[] };
+
+export const sidebarItems: Node[] = [
   {
     key: "dashboard",
     label: "Dashboard",
@@ -28,16 +31,16 @@ export const sidebarItems = [
   },
   {
     key: "masterData",
-    label: "Master Data",
+    label: "Master Date",
     icon: <FiDatabase size={18} />,
     children: [
       { key: "villagemasterdata", label: "Village Master Data", path: "/master/villagedata" },
       { key: "bankmasterdata", label: "Bank Master Data", path: "/master/bank-master" },
-      { key: "animalBreadmasterdata", label: "Animal Bread Master ", path: "/master/animal-breed-master" },
-      { key: "animalTypemaster", label: "Animal Type Master ", path: "/master/animal-type-master" },
-      { key: "Roles", label: "Roles Master ", path: "/master/roles" },
-      { key: "Approvalhierarchy", label: "Approval Hierarchy ", path: "/master/approval-hierarchy" },
-      { key: "FormData", label: "Form Data ", path: "/master/form-data" },
+      { key: "animalBreadmasterdata", label: "Animal Bread Master", path: "/master/animal-breed-master" },
+      { key: "animalTypemaster", label: "Animal Type Master", path: "/master/animal-type-master" },
+      { key: "Roles", label: "Roles Master", path: "/master/roles" },
+      { key: "Approvalhierarchy", label: "Approval Hierarchy", path: "/master/approval-hierarchy" },
+      { key: "FormData", label: "Form Data", path: "/master/form-data" },
     ],
   },
   {
@@ -52,7 +55,8 @@ export const sidebarItems = [
   {
     key: "membersForm",
     label: "Members Form",
-    icon: <FiUsers size={18} />,
+    icon: <FaRegUser 
+ size={18} />,
     children: [
       { key: "approvedmem", label: "Approved Members", path: "/users/approved" },
       { key: "pendingmem", label: "Pending Members", path: "/users/pending" },
@@ -61,16 +65,16 @@ export const sidebarItems = [
     ],
   },
   {
-    key: "uilities",
-    label: "Utilies",
-    icon: <FiTruck size={18} />,
+    key: "utilities",
+    label: "Utilities",
+    icon: <BsUiChecksGrid  size={18} />,
     children: [
       { key: "formlist", label: "Form List", path: "/utility/form-list" },
       { key: "membercode", label: "Member Code", path: "/utility/member-code" },
-      { key: "Foliocode", label: "Folio Code ", path: "/utility/folio-number" },
+      { key: "Foliocode", label: "Folio Code", path: "/utility/folio-number" },
       { key: "facilitator", label: "Facilitator Form Transfer", path: "/utility/facilitator" },
-      { key: "approvaluser", label: "Approval User  Form Transfer", path: "/utility/approvaluser" },
-      { key: "Mcc/Mpp ", label: "MCC/MPP Transfer", path: "/utility/mcc_mpp-transfer" },
+      { key: "approvaluser", label: "Approval User Form Transfer", path: "/utility/approvaluser" },
+      { key: "mccmpp", label: "MCC/MPP Transfer", path: "/utility/mcc_mpp-transfer" },
       { key: "oldmember", label: "Old Members", path: "/utility/old-member" },
     ],
   },
@@ -78,9 +82,7 @@ export const sidebarItems = [
     key: "finalapproval",
     label: "Final Approval",
     icon: <FiDollarSign size={18} />,
-    children: [
-      { key: "allforms", label: "All Forms", path: "/dashboard/final-approval" },
-    ],
+    children: [{ key: "allformsFA", label: "All Forms", path: "/dashboard/final-approval" }],
   },
   {
     key: "reports",
@@ -95,85 +97,94 @@ export const sidebarItems = [
   {
     key: "fedi",
     label: "Form Edit/Delete/Inactive",
-    icon: <FiBarChart2 size={18} />,
-    children: [
-      { key: "allform", label: "All Forms", path: "/dashboard/edit-inactive" },
-    ],
+    icon: <FaEdit  size={18} />,
+    children: [{ key: "allformEDI", label: "All Forms", path: "/dashboard/edit-inactive" }],
   },
-  {
-    key: "settings",
-    label: "Settings",
-    icon: <FiSettings size={18} />,
-    path: "/settings",
-    bottom: true,
-  },
-  {
-    key: "logout",
-    label: "Logout",
-    icon: <FiLogOut size={18} />,
-    action: "logout",
-    bottom: true,
-  },
+  // Optional bottom items (uncomment if you want them)
+  // { key: "settings", label: "Settings", icon: <FiSettings size={18} />, path: "/settings", bottom: true },
+  // { key: "logout", label: "Logout", icon: <FiLogOut size={18} />, action: "logout", bottom: true },
 ];
 
+/* --------------------------- COMPONENT --------------------------- */
 const Sidebar: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { sidebarCollapsed } = useAppSelector((state) => state.ui);
+  const { sidebarCollapsed } = useAppSelector((s) => s.ui);
 
   const [openKeys, setOpenKeys] = useState<string[]>([]);
 
-  const findParentKey = (items: any[], path: string): string | null => {
+  // map every clickable key to its original node for onClick handling
+  const keyMap = useMemo(() => {
+    const map = new Map<string, Leaf>();
+    const walk = (items: Node[]) => {
+      items.forEach((it) => {
+        if (it.children?.length) walk(it.children as Node[]);
+        if (it.path || it.action) map.set(it.path || it.key, it);
+      });
+    };
+    walk(sidebarItems);
+    return map;
+  }, []);
+
+  // find parent submenu for a path
+  const findParentKey = (items: Node[], path: string): string | null => {
     for (const item of items) {
+      if (item.children?.some((c) => c.path === path)) return item.key;
       if (item.children) {
-        if (item.children.some((child: any) => child.path === path)) {
-          return item.key;
-        }
-        const nested = findParentKey(item.children, path);
+        const nested = findParentKey(item.children as Node[], path);
         if (nested) return nested;
       }
     }
     return null;
   };
 
+  // auto-open current parent group
   useEffect(() => {
     const parentKey = findParentKey(sidebarItems, location.pathname);
-    if (parentKey) setOpenKeys([parentKey]);
+    setOpenKeys(parentKey ? [parentKey] : []);
   }, [location.pathname]);
 
-  const handleMenuClick = (item: any) => {
+  // Only one root submenu open at a time (accordion)
+  const onOpenChange: MenuProps["onOpenChange"] = (keys) => {
+    const latest = keys.find((k) => !openKeys.includes(k));
+    setOpenKeys(latest ? [latest] : []);
+  };
+
+  const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
+    const item = keyMap.get(String(key));
+    if (!item) return;
+
     if (item.action === "logout") {
       dispatch(logout());
       navigate("/auth/login");
-    } else if (item.path) {
-      navigate(item.path);
+      return;
     }
+    if (item.path) navigate(item.path);
   };
 
-  const onOpenChange = (keys: string[]) => {
-    const latestOpenKey = keys.find((key) => !openKeys.includes(key));
-    setOpenKeys(latestOpenKey ? [latestOpenKey] : []);
-  };
+  const topItems = sidebarItems.filter((i) => !i.bottom);
+  const bottomItems = sidebarItems.filter((i) => i.bottom);
 
-  const topItems = sidebarItems.filter((item) => !item.bottom);
-  const bottomItems = sidebarItems.filter((item) => item.bottom);
-
-  const buildMenuItems = (items: any[]) =>
+  // Build AntD items with submenu + leaves
+  const buildMenuItems = (items: Node[]): MenuProps["items"] =>
     items.map((item) => {
-      if (item.children) {
+      if (item.children?.length) {
         return {
           key: item.key,
           icon: item.icon,
-          label: item.label,
-          children: buildMenuItems(item.children),
+          label: <span className="app-sb-label">{item.label}</span>,
+          children: item.children.map((c) => ({
+            key: c.path || c.key,
+            label: <span className="app-sb-child">{c.label}</span>,
+          })),
         };
       }
+      // leaf
       return {
         key: item.path || item.key,
         icon: item.icon,
-        label: item.label,
-        onClick: () => handleMenuClick(item),
+        label: <span className="app-sb-label">{item.label}</span>,
       };
     });
 
@@ -190,38 +201,57 @@ const Sidebar: React.FC = () => {
         top: "10px",
         overflow: "hidden",
       }}
-      className="bg-white border-r border-neutral-200 shadow-sm animate-slide-in"
+      className="bg-white border-r border-neutral-200 
+      shadow-sm animate-slide-in app-sidebar"
     >
       <div className="flex flex-col h-full">
-        {/* Logo Section */}
+        {/* Logo */}
         <div className="p-4 border-b border-neutral-200 flex items-center justify-center">
-          <div className="w-28 h-12 bg-blue-500 rounded-md flex items-center justify-center text-white font-semibold">
-            Logo Placement
+          <div className="min-w-28 min-h-12 bg-blue rounded-md flex items-center justify-center text-white font-semibold">
+            Logo
           </div>
         </div>
 
-        {/* Scrollable Menu */}
+        {/* Scrollable menu */}
         <div className="flex-1 overflow-auto custom-sidebar">
           <Menu
             mode="inline"
+            onClick={handleMenuClick}
             selectedKeys={[location.pathname]}
-            items={buildMenuItems(topItems)}
             openKeys={openKeys}
             onOpenChange={onOpenChange}
-            className="border-r-0 bg-transparent"
-            style={{ fontSize: "14px" }}
+            items={buildMenuItems(topItems)}
+            // className="border-r-0 bg-transparent app-sidebar-menu"
+            inlineIndent={20}
+            // custom expand icon (down chevron)
+            expandIcon={(props) => {
+              const { isOpen } = props;
+              return (
+                <span
+                  className={`sb-chevron ${isOpen ? "open" : ""}`}
+                  style={{ display: "inline-flex", alignItems: "center", marginInlineStart: 6 }}
+                >
+                  <FiChevronDown size={16} />
+                </span>
+              );
+            }}
           />
         </div>
 
-        {/* Bottom Menu */}
-        <div className="border-t border-neutral-200 custom-sidebar">
+        {/* Bottom area */}
+        <div className="border-t border-slate-200">
           <Menu
             mode="inline"
+            onClick={handleMenuClick}
             selectable={false}
             items={buildMenuItems(bottomItems)}
-            className="border-r-0 bg-transparent"
-            style={{ fontSize: "14px" }}
+            className="border-r-0 bg-transparent app-sidebar-menu"
           />
+          {/* Footer/copyright */}
+<div className="px-4 !border border-2 border-blue py-3 text-sm text-textlight">
+            <div>Copyright© 2025 <span className='text-black font-bold'>Kodaima</span>.</div>
+            <div>All Rights Reserved.</div>
+          </div>
         </div>
       </div>
     </Sider>

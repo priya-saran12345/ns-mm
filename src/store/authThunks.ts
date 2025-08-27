@@ -16,7 +16,6 @@ export const loginUser = createAsyncThunk<
     try {
       dispatch(setError(null));
       await mockApiDelay(1000);
-
       if (credentials.email === 'admin@erp.com' && credentials.password === 'admin123') {
         const mockUser: User = {
           id: '1',
@@ -29,7 +28,6 @@ export const loginUser = createAsyncThunk<
         };
         const mockToken = 'mock-jwt-token-admin-' + Date.now();
         return { user: mockUser, token: mockToken };
-
       } else if (credentials.email === 'user@erp.com' && credentials.password === 'user123') {
         const mockUser: User = {
           id: '2',
