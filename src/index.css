@@ -15,7 +15,7 @@
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar {
+/* ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
@@ -33,17 +33,14 @@
   background: #a1a1a1;
 }
 
-/* Smooth transitions for all elements */
 * {
   transition: all 0.2s ease-in-out;
 }
 
-/* Custom card hover effects */
 .ant-card:hover {
   transform: translateY(-2px);
 }
 
-/* Custom button styles */
 .ant-btn-primary {
   box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
 }
@@ -52,17 +49,14 @@
   box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
 }
 
-/* Custom form styles */
 .ant-form-item-label > label {
   font-weight: 500;
 }
 
-/* Custom table styles */
 .ant-table-tbody > tr:hover > td {
   background-color: #f8f9fa !important;
 }
 
-/* Custom menu styles */
 .ant-menu-item-selected {
   background-color: #e6f7ff !important;
   border-right: 3px solid #1890ff;
@@ -72,11 +66,11 @@
   background-color: #f0f9ff;
 }
 
-/* Loading animation */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
   }
+    
   50% {
     opacity: 0.5;
   }
@@ -84,4 +78,4 @@
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
+} */

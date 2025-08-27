@@ -1,16 +1,14 @@
 // App.tsx
-import React, { useEffect } from "react";
+import React from "react";
 import { ConfigProvider } from "antd";
 import { Provider } from "react-redux";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { store } from "./store/store";
-import { useAppDispatch } from "./hooks/redux.hooks";
-import { initializeAuth } from "./store/authSlice";
 
 // Layout
 import MainLayout from "./components/Layout/MainLayout";
 
-// Pages (IMPORTANT: remove MainLayout wrapper from these pages)
+// Pages
 import DashboardPage from "./pages/Dashboard/DashboardPage";
 import FieldUsers from "./pages/Dashboard/FieldUsersForm";
 import SingleUserFormPage from "./pages/Dashboard/SingleUserFormPage";
@@ -31,45 +29,32 @@ import Old_member from "./pages/Utility/Old-member";
 import MemberReport from "./pages/Report/MemberReport";
 import GeneratedReports from "./pages/Report/GeneratedReports";
 import AnimalReport from "./pages/Report/AnimalReport";
-import EditInactive from "./pages/EditInactive"; // <- uncomment when available
-import FinalApproval from "./pages/FinalApproval"; // <- uncomment when available
-import ApprovedMem from "./pages/Member/ApprovedMember"; // <- uncomment when available
-import RejectedMem from "./pages/Member/RejectedMem"; // <- uncomment when available
-import PendingMem from "./pages/Member/PendingMem"; // <- uncomment when available
-import Re_submitted from "./pages/Member/Re-submitted"; // <- uncomment when available
-import USers from "./pages/UserManagement/UserManagement"; // <- uncomment when available
-import SectionAlloatment from "./pages/UserManagement/SectionAlloatment"; // <- uncomment when available
-import Asignmpp from "./components/Dashboard/UserManagement/AssignMpp"; // <- uncomment when available
-import USerDetail from "./pages/UserManagement/Userdetail"; // <- uncomment when available
+import EditInactive from "./pages/EditInactive";
+import FinalApproval from "./pages/FinalApproval";
+import ApprovedMem from "./pages/Member/ApprovedMember";
+import RejectedMem from "./pages/Member/RejectedMem";
+import PendingMem from "./pages/Member/PendingMem";
+import Re_submitted from "./pages/Member/Re-submitted";
+import USers from "./pages/UserManagement/UserManagement";
+import SectionAlloatment from "./pages/UserManagement/SectionAlloatment";
+import Asignmpp from "./components/Dashboard/UserManagement/AssignMpp";
+import USerDetail from "./pages/UserManagement/Userdetail";
 
-// import ProtectedRoute from "./components/ProtectedRoute";
-// import PublicRoute from "./components/PublicRoute";
-// import LoginPage from "./pages/LoginPage";
-// import SignupPage from "./pages/SignupPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import LoginPage from "./pages/LoginPage";
+
+// Route Guards (Outlet-style)
+import ProtectedRoute from "./components/ProtectedRoute";
+import PublicRoute from "./components/PublicRoute";
+
+const AppLayout: React.FC = () => (
+  <MainLayout>
+    <Outlet />
+  </MainLayout>
+);
 
 const AppContent: React.FC = () => {
-  const dispatch = useAppDispatch();
-  useEffect(() => {
-    dispatch(initializeAuth());
-  }, [dispatch]);
-
-  // Layout route element: wraps children with MainLayout and renders <Outlet />
-  const AppLayout: React.FC = () => (
-    <MainLayout>
-      <Outlet />
-    </MainLayout>
-  );
-
-  // Optional: if you want to guard everything under the layout:
-  // const Guarded: React.FC = () => (
-  //   <ProtectedRoute>
-  //     <Outlet />
-  //   </ProtectedRoute>
-  // );
-
-  // DRY route table for “in-app” pages
   const appRoutes: { path: string; element: React.ReactElement }[] = [
-    { path: "/", element: <DashboardPage /> },
     { path: "/dashboard", element: <DashboardPage /> },
     { path: "/dashboard/fieldusers", element: <FieldUsers /> },
     { path: "/dashboard/fieldusers/:id", element: <SingleUserFormPage /> },
@@ -89,13 +74,16 @@ const AppContent: React.FC = () => {
     { path: "/utility/approvaluser", element: <Approvaluser /> },
     { path: "/utility/mcc_mpp-transfer", element: <MCC_mpp /> },
     { path: "/utility/old-member", element: <Old_member /> },
+
     { path: "/reports/member", element: <MemberReport /> },
     { path: "/reports/generated-report", element: <GeneratedReports /> },
     { path: "/reports/animal-report", element: <AnimalReport /> },
+
     { path: "/dashboard/edit-inactive", element: <EditInactive /> },
     { path: "/dashboard/final-approval", element: <FinalApproval /> },
+
     { path: "/users/approved", element: <ApprovedMem /> },
-    { path: "/users/pending", element: < PendingMem/> },
+    { path: "/users/pending", element: <PendingMem /> },
     { path: "/users/rejected", element: <RejectedMem /> },
     { path: "/users/re-submitted", element: <Re_submitted /> },
     { path: "/users", element: <USers /> },
@@ -107,29 +95,25 @@ const AppContent: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* Redirect root to dashboard */}
+        {/* Redirect root */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-        {/* Public (no layout) */}
-        {/* 
-        <Route path="/auth/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/auth/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-        */}
-
-        {/* App area with a universal MainLayout */}
-        <Route element={<AppLayout />}>
-          {/* If using auth guard for all app pages, nest a Guard: 
-          <Route element={<Guarded />}>
-            {appRoutes.map(r => <Route key={r.path} path={r.path} element={r.element} />)}
-          </Route>
-          */}
-          {appRoutes.map((r) => (
-            <Route key={r.path} path={r.path} element={r.element} />
-          ))}
+        {/* Public-only (guests) */}
+        <Route element={<PublicRoute />}>
+          <Route path="/auth/login" element={<LoginPage />} />
+          {/* <Route path="/auth/signup" element={<SignupPage />} /> */}
         </Route>
 
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Private app area with layout */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            {appRoutes.map((r) => (
+              <Route key={r.path} path={r.path} element={r.element} />
+            ))}
+            {/* 404 inside app layout */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Route>
       </Routes>
     </Router>
   );
