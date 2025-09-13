@@ -1,86 +1,87 @@
 // src/store/authThunks.ts
-import { createAsyncThunk } from '@reduxjs/toolkit';
-import { LoginCredentials, SignupCredentials, User } from '../types/auth.types';
-import { setError } from './authSlice';
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
+import type { LoginCredentials, AuthResponse, User } from "../types/auth.types";
+import { setError } from "./authSlice";
 
-// Mock API calls - replace with actual API endpoints
-const mockApiDelay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const RAW_API_BASE =
+  import.meta.env.VITE_API_BASE_URL ??
+  "https://dudiya-admin-production.up.railway.app/api/v1";
+
+// normalize: trim spaces and remove trailing slashes
+const API_BASE = RAW_API_BASE.trim().replace(/\/+$/, "");
 
 export const loginUser = createAsyncThunk<
   { user: User; token: string },
   LoginCredentials,
   { rejectValue: string }
->(
-  'auth/loginUser',
-  async (credentials, { dispatch, rejectWithValue }) => {
-    try {
-      dispatch(setError(null));
-      await mockApiDelay(1000);
-      if (credentials.email === 'admin@erp.com' && credentials.password === 'admin123') {
-        const mockUser: User = {
-          id: '1',
-          email: credentials.email,
-          name: 'Admin User',
-          role: 'admin',
-          avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?w=100&h=100&fit=crop&crop=face',
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString(),
-        };
-        const mockToken = 'mock-jwt-token-admin-' + Date.now();
-        return { user: mockUser, token: mockToken };
-      } else if (credentials.email === 'user@erp.com' && credentials.password === 'user123') {
-        const mockUser: User = {
-          id: '2',
-          email: credentials.email,
-          name: 'Regular User',
-          role: 'user',
-          avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?w=100&h=100&fit=crop&crop=face',
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString(),
-        };
-        const mockToken = 'mock-jwt-token-user-' + Date.now();
-        return { user: mockUser, token: mockToken };
-      }
+>("auth/loginUser", async (credentials, { dispatch, rejectWithValue }) => {
+  try {
+    dispatch(setError(null));
 
-      throw new Error('Invalid credentials');
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Login failed');
+    // sanitize payload
+    const payload = {
+      email: credentials.email?.trim() ?? "",
+      password: credentials.password ?? "",
+       role: "field_user"
+      // ensure role  matches exactly what backend expects (e.g., "field_user")
+      // ...(credentials.role ? { role: String(credentials.role).trim()||"field_user" } : {}),
+    };
+
+    const url = `${API_BASE}/auth/login`;
+
+    const { data } = await axios.post<AuthResponse>(url, payload, {
+      headers: { "Content-Type": "application/json" },
+      withCredentials: false,
+    });
+
+    if (!data?.success) {
+      const msg = data?.message || "Login failed";
+      return rejectWithValue(msg);
     }
-  }
-);
 
-export const signupUser = createAsyncThunk<
-  { user: User; token: string },
-  SignupCredentials,
-  { rejectValue: string }
->(
-  'auth/signupUser',
-  async (credentials, { dispatch, rejectWithValue }) => {
-    try {
-      dispatch(setError(null));
-      await mockApiDelay(1000);
+    const accessToken = data.data?.accessToken ?? "";
+    const refreshToken = data.data?.refreshToken;
+    const rawUser = data.data?.user;
 
-      if (credentials.password !== credentials.confirmPassword) {
-        throw new Error('Passwords do not match');
+    // normalize user
+    let parsedUser: Partial<User> = {};
+    if (typeof rawUser === "string") {
+      try {
+        parsedUser = JSON.parse(rawUser) as Partial<User>;
+      } catch {
+        parsedUser = {
+          id: rawUser,
+          email: payload.email,
+          name: rawUser,
+          role: "user",
+          createdAt: new Date().toISOString(),
+        };
       }
-
-      const mockUser: User = {
-        id: Date.now().toString(),
-        email: credentials.email,
-        name: credentials.name,
-        role: 'user',
-        createdAt: new Date().toISOString(),
-      };
-      const mockToken = 'mock-jwt-token-new-' + Date.now();
-      return { user: mockUser, token: mockToken };
-
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Signup failed');
+    } else if (rawUser && typeof rawUser === "object") {
+      parsedUser = rawUser as Partial<User>;
     }
-  }
-);
 
-export const logoutUser = createAsyncThunk('auth/logoutUser', async () => {
-  await mockApiDelay(500);
-  // no storage side-effects — Redux slice will clear state
+    const user: User = {
+      id: parsedUser.id ?? "unknown",
+      email: parsedUser.email ?? payload.email,
+      name: parsedUser.name ?? "User",
+      role: (parsedUser.role as User["role"]) ?? "user",
+      avatar: parsedUser.avatar,
+      createdAt: parsedUser.createdAt ?? new Date().toISOString(),
+      lastLogin: parsedUser.lastLogin ?? new Date().toISOString(),
+    };
+
+    if (accessToken) localStorage.setItem("auth_token", accessToken);
+    if (refreshToken) localStorage.setItem("refresh_token", String(refreshToken));
+
+    return { user, token: accessToken };
+  } catch (err: unknown) {
+    const e = err as { response?: { data?: any }; message?: string };
+    const msg =
+      e?.response?.data?.message ??
+      e?.message ??
+      "Login failed";
+    return rejectWithValue(msg);
+  }
 });

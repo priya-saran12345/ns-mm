@@ -19,17 +19,17 @@ export interface AuthState {
 export interface LoginCredentials {
   email: string;
   password: string;
+  // add role exactly as backend expects
+  role: "field_user" | "admin" | "user" | "manager";
 }
+export interface AuthResponse{
+    success: boolean,
+  message: string,
+  data: {
+    user: string,
+    accessToken: string,
+    refreshToken: string
+  },
+  requestId: string
 
-export interface SignupCredentials {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
-  message: string;
 }

@@ -1,7 +1,7 @@
 // src/store/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { AuthState, User } from '../types/auth.types';
-import { loginUser, signupUser, logoutUser } from './authThunks';
+import { loginUser } from './authThunks';
 
 const initialState: AuthState = {
   user: null,
@@ -60,29 +60,14 @@ const authSlice = createSlice({
         state.error = (action.payload as string) ?? action.error.message ?? 'Login failed';
       })
       // Signup
-      .addCase(signupUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(signupUser.fulfilled, (state, action) => {
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.isAuthenticated = true;
-        state.isLoading = false;
-        state.error = null;
-      })
-      .addCase(signupUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = (action.payload as string) ?? action.error.message ?? 'Signup failed';
-      })
       // Logout thunk clears state
-      .addCase(logoutUser.fulfilled, (state) => {
-        state.user = null;
-        state.token = null;
-        state.isAuthenticated = false;
-        state.isLoading = false;
-        state.error = null;
-      });
+      // .addCase(logoutUser.fulfilled, (state) => {
+      //   state.user = null;
+      //   state.token = null;
+      //   state.isAuthenticated = false;
+      //   state.isLoading = false;
+      //   state.error = null;
+      // });
   },
 });
 

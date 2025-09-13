@@ -4,7 +4,6 @@ import SignupForm from './SignupForm';
 
 const AuthContainer: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
-
   return isLogin ? (
     <LoginForm onSwitchToSignup={() => setIsLogin(false)} />
   ) : (
