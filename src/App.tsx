@@ -1,5 +1,5 @@
 // App.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import { ConfigProvider } from "antd";
 import { Provider } from "react-redux";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
@@ -42,10 +42,13 @@ import USerDetail from "./pages/UserManagement/Userdetail";
 
 import NotFoundPage from "./pages/NotFoundPage";
 import LoginPage from "./pages/LoginPage";
+// import { store } from "./store/store";
 
 // Route Guards (Outlet-style)
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
+import { useAppDispatch } from "./store/store";
+import { hydrateAuth } from "./store/authSlice";
 
 const AppLayout: React.FC = () => (
   <MainLayout>
@@ -91,6 +94,12 @@ const AppContent: React.FC = () => {
     { path: "/users/assign-mpp", element: <Asignmpp /> },
     { path: "/users/detail/:id", element: <USerDetail /> },
   ];
+const dispatch = useAppDispatch();
+
+  // 🔑 Read token+user from localStorage on first mount
+  useEffect(() => {
+    dispatch(hydrateAuth());
+  }, [dispatch]);
 
   return (
     <Router>
@@ -118,7 +127,6 @@ const AppContent: React.FC = () => {
     </Router>
   );
 };
-
 const App: React.FC = () => {
   return (
     <Provider store={store}>
@@ -146,5 +154,4 @@ const App: React.FC = () => {
     </Provider>
   );
 };
-
 export default App;

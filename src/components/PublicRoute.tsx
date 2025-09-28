@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAppSelector } from '../hooks/redux.hooks';
+import { useAppSelector } from '../store/store';
 
 const PublicRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAppSelector((s) => s.auth);
@@ -21,7 +21,7 @@ const PublicRoute: React.FC = () => {
   }
 
   if (isAuthenticated) {
-    const backTo = (location.state as any)?.from?.pathname || "/dashboard";
+    const backTo = (location.state )?.from?.pathname || "/dashboard";
     return <Navigate to={backTo} replace />;
   }
 
