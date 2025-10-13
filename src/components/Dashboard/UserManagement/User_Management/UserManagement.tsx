@@ -30,7 +30,7 @@ type Row = {
   appVersion?: string;
 };
 
-const API_PATH = "/api/v1/user";
+const API_PATH = "user";
 const PAGE_SIZE = 10;
 
 const UserManagement: React.FC = () => {

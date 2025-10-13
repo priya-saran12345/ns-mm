@@ -3,6 +3,8 @@ import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux';
 import authReducer from './authSlice';
 import uiReducer from './uiSlice';
 import usersReducer from '../components/Dashboard/UserManagement/User_Management/slice';
+import rolesSlice from '../components/Dashboard/Master/Roles/slice';
+import categoriesSlice from '../components/Dashboard/Master/Category/slice';
 
 // Create store
 export const store = configureStore({
@@ -10,6 +12,8 @@ export const store = configureStore({
     auth: authReducer,
     ui: uiReducer,
     users: usersReducer,
+    roles:rolesSlice,
+    category:categoriesSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

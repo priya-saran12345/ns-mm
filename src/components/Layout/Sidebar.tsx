@@ -36,8 +36,8 @@ export const sidebarItems: Node[] = [
     children: [
       { key: "villagemasterdata", label: "Village Master Data", path: "/master/villagedata" },
       { key: "bankmasterdata", label: "Bank Master Data", path: "/master/bank-master" },
-      { key: "animalBreadmasterdata", label: "Animal Bread Master", path: "/master/animal-breed-master" },
-      { key: "animalTypemaster", label: "Animal Type Master", path: "/master/animal-type-master" },
+      // { key: "animalBreadmasterdata", label: "Animal Bread Master", path: "/master/animal-breed-master" },
+      // { key: "animalTypemaster", label: "Animal Type Master", path: "/master/animal-type-master" },
       { key: "Roles", label: "Roles Master", path: "/master/roles" },
       { key: "Approvalhierarchy", label: "Approval Hierarchy", path: "/master/approval-hierarchy" },
       { key: "FormData", label: "Form Data", path: "/master/form-data" },

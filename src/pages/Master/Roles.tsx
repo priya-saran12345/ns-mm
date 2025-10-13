@@ -1,5 +1,5 @@
 import React from 'react';
-import Roles from '../../components/Dashboard/Master/roles';
+import Roles from '../../components/Dashboard/Master/Roles/roles';
 
 const DashboardPage: React.FC = () => {
   return (

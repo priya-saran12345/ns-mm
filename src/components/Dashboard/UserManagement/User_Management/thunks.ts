@@ -37,7 +37,7 @@ type SingleUserApiResponse =
 
 /** ---------- Config ---------- */
 const BASE_URL =
-  import.meta.env.VITE_API_BASE ?? "https://dudiya-admin-production.up.railway.app";
+  import.meta.env.VITE_API_BASE ??"https://69.62.73.62/api/v1/";
 
 /** ---------- Helpers ---------- */
 function authHeaders(state: RootState) {
