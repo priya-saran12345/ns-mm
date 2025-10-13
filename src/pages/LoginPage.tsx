@@ -88,7 +88,7 @@ const LoginPage: React.FC = () => {
               </Button>
             </Form.Item>
             <p>
-              for testing use this email id(admin@erp.com) and password (admin123)
+              {/* for testing use this email id(admin@erp.com) and password (admin123) */}
             </p>
           
           </Form>

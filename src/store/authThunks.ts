@@ -1,12 +1,11 @@
 // src/store/authThunks.ts
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios, { AxiosError } from "axios";
-import type { LoginCredentials, AuthResponse, User } from "../types/auth.types";
+import type { LoginCredentials, AuthResponse, User, RawUser } from "../types/auth.types";
 import { setError } from "./authSlice";
 
 const RAW_API_BASE =
-  import.meta.env.VITE_API_BASE_URL ??
-  "https://dudiya-admin-production.up.railway.app/api/v1";
+  import.meta.env.VITE_API_BASE_URL ?? "https://69.62.73.62/api/v1/";
 const API_BASE = RAW_API_BASE.trim().replace(/\/+$/, "");
 
 // Axios instance (Bearer-token flow; no cookies)
@@ -19,16 +18,20 @@ const http = axios.create({
   },
 });
 
-function normalizeUser(rawUser: any, fallbackEmail: string): User {
-  const u = (rawUser && typeof rawUser === "object") ? rawUser : {};
+function normalizeUser(rawUser: RawUser | undefined, fallbackEmail: string): User {
+  const u = (rawUser && typeof rawUser === "object") ? rawUser : ({} as RawUser);
+
+  // Prefer first_name + last_name; then name; then username; fallback "User"
+  const composedName = [u.first_name, u.last_name].filter(Boolean).join(" ").trim();
+  const name = composedName || u.name || u.username || "User";
+
   return {
-    id: u.id ?? "unknown",
+    id: String(u.id ?? "unknown"),
     email: u.email ?? fallbackEmail,
-    name: u.name ?? u.username ?? "User",
-    role: u.role ?? "user",
-    avatar: u.avatar,
+    name,
+    avatar: u.avatar ?? null,
     createdAt: u.createdAt ?? new Date().toISOString(),
-    lastLogin: u.lastLogin ?? new Date().toISOString(),
+    lastLogin: u.last_login ?? new Date().toISOString(),
   };
 }
 
@@ -43,10 +46,10 @@ export const loginUser = createAsyncThunk<
     const payload = {
       email: (credentials.email ?? "").trim(),
       password: credentials.password ?? "",
-      ...(credentials.role ? { role: String(credentials.role).trim() } : {}),
     };
 
     const { data } = await http.post<AuthResponse>("/auth/login", payload);
+
     if (!data?.success) {
       return rejectWithValue(data?.message || "Login failed");
     }
@@ -56,7 +59,7 @@ export const loginUser = createAsyncThunk<
       return rejectWithValue("No access token returned by server");
     }
 
-    const user = normalizeUser(data.data?.user, payload.email);
+    const user = normalizeUser(data.data?.user as RawUser | undefined, payload.email);
     return { user, token };
   } catch (err) {
     const ax = err as AxiosError<any>;
