@@ -81,7 +81,9 @@ export interface UsersState {
   updateLoading: boolean;
   updateError: string | null;
     deactivateLoading: boolean; // 👈
-  deactivateError: string | null; // 👈
+    deactivateError: string | null; // 👈
+    createLoading: string | null; // 👈
+    createError: boolean; // 👈
 
 }
 

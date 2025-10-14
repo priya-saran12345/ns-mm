@@ -1,5 +1,6 @@
+// src/modules/UserManagement/components/UserManagement.tsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Table, Input, Button, Tooltip } from "antd";
+import { Table, Input, Button, Tooltip, message } from "antd"; // 👈 import message
 import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined, StopOutlined } from "@ant-design/icons";
 import { Edit2 } from "lucide-react";
@@ -9,16 +10,19 @@ import { BsPaperclip } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
 
 import BradCrumb from "../../BreadCrumb";
-import RegisterUserModal from "../RegisterUserModal";
+import RegisterUserModal from "./RegisterUserModal";
 import EditUserModal from "./EditUserModal";
 
 // ✅ thunks
-import { fetchUsersThunk, UsersTablePayload, deactivateUserThunk } from "./thunks";
-// store
+import {
+  fetchUsersThunk,
+  UsersTablePayload,
+  deactivateUserThunk,
+  createUserThunk,
+} from "./thunks";
 import { useAppDispatch } from "../../../../store/store";
 
-// ⚠️ Reusable modal with your message formats (warning/success/info/delete)
-import MessageModal from "../../../../components/Dashboard/Message"; 
+import MessageModal from "../../../../components/Dashboard/Message";
 
 type Row = {
   id: number;
@@ -28,6 +32,7 @@ type Row = {
   role: string;
   email: string;
   appVersion?: string;
+  userRole?: { id: number; name: string; status?: boolean; category?: { id: number; name: string } };
 };
 
 const API_PATH = "user";
@@ -40,7 +45,6 @@ const UserManagement: React.FC = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  // server state (local to this screen)
   const [serverRows, setServerRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -49,7 +53,6 @@ const UserManagement: React.FC = () => {
   const [openEdit, setOpenEdit] = useState(false);
   const [editRow, setEditRow] = useState<Row | null>(null);
 
-  // deactivate modals state
   const [confirmDeactivate, setConfirmDeactivate] = useState<{ open: boolean; user: Row | null }>({
     open: false,
     user: null,
@@ -60,17 +63,31 @@ const UserManagement: React.FC = () => {
     msg: "",
   });
 
+  const mapToRow = (u: any): Row => {
+    const roleName: string = u?.userRole?.name ?? u?.role ?? "";
+    return {
+      id: u.id,
+      name: (u.first_name || u.last_name) ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() : u.name ?? u.email,
+      username: u.username ?? u.email,
+      password: "********",
+      role: roleName,
+      email: u.email,
+      appVersion: u.appVersion ?? "",
+      userRole: u.userRole ?? (roleName ? { id: 0, name: roleName } : undefined),
+    };
+  };
+
   const fetchPage = useCallback(async () => {
     setLoading(true);
     try {
       const payload = await dispatch(
         fetchUsersThunk({ path: API_PATH, page, limit: PAGE_SIZE /*, search*/ })
       ).unwrap();
-
       const { rows, pagination } = payload as UsersTablePayload;
-      setServerRows(rows as Row[]);
-      setTotal(pagination?.total ?? rows.length);
-    } catch (_e) {
+      const mapped: Row[] = (rows as any[]).map(mapToRow);
+      setServerRows(mapped);
+      setTotal(pagination?.total ?? mapped.length);
+    } catch {
       setServerRows([]);
       setTotal(0);
     } finally {
@@ -82,7 +99,6 @@ const UserManagement: React.FC = () => {
     fetchPage();
   }, [fetchPage]);
 
-  // Optional client-side search over current page
   const data = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return serverRows;
@@ -100,65 +116,31 @@ const UserManagement: React.FC = () => {
   }, [serverRows, search]);
 
   const columns: ColumnsType<Row> = [
+    { title: <span className="text-lighttext font-semibold">ID</span>, dataIndex: "id", key: "id", width: 70,
+      render: (v: number) => <span className="text-textheading font-medium">{v}</span> },
+    { title: <span className="text-lighttext font-semibold">Name</span>, dataIndex: "name", key: "name",
+      render: (t: string) => <span className="text-textheading font-medium">{t}</span> },
+    { title: <span className="text-lighttext font-semibold">User Name</span>, dataIndex: "username", key: "username",
+      render: (t: string) => <span className="text-textheading font-medium">{t}</span> },
+    { title: <span className="text-lighttext font-semibold">Role</span>, dataIndex: "role", key: "role",
+      render: (_: unknown, r: Row) => <span className="text-textheading font-medium">{r.userRole?.name || r.role || "-"}</span> },
+    { title: <span className="text-lighttext font-semibold">Email</span>, dataIndex: "email", key: "email",
+      render: (t: string) => <span className="text-textheading font-medium">{t}</span> },
     {
-      title: <span className="text-lighttext font-semibold">ID</span>,
-      dataIndex: "id",
-      key: "id",
-      width: 70,
-      render: (v: number) => <span className="text-textheading font-medium">{v}</span>,
-    },
-    {
-      title: <span className="text-lighttext font-semibold">Name</span>,
-      dataIndex: "name",
-      key: "name",
-      render: (text: string) => <span className="text-textheading font-medium">{text}</span>,
-    },
-    {
-      title: <span className="text-lighttext font-semibold">User Name</span>,
-      dataIndex: "username",
-      key: "username",
-      render: (text: string) => <span className="text-textheading font-medium">{text}</span>,
-    },
-    {
-      title: <span className="text-lighttext font-semibold">Role</span>,
-      dataIndex: "role",
-      key: "role",
-      render: (text: string) => <span className="text-textheading font-medium">{text}</span>,
-    },
-    {
-      title: <span className="text-lighttext font-semibold">Email</span>,
-      dataIndex: "email",
-      key: "email",
-      render: (text: string) => <span className="text-textheading font-medium">{text}</span>,
-    },
-    {
-      title: <span className="text-lighttext font-semibold">Action</span>,
-      key: "action",
-      width: 300,
+      title: <span className="text-lighttext font-semibold">Action</span>, key: "action", width: 300,
       render: (_: unknown, record: Row) => (
         <div className="flex items-center gap-2">
-          {/* small square action buttons */}
           <Tooltip title="Permissions">
-            <Button
-              size="small"
-              className="bg-blue rounded-lg text-[18px] text-white border-0"
-              onClick={() => navigate("/users/assign-mpp")}
-            >
+            <Button size="small" className="bg-blue rounded-lg text-[18px] text-white border-0" onClick={() => navigate("/users/assign-mpp")}>
               <IoDocumentText />
             </Button>
           </Tooltip>
-
-          {/* Deactivate */}
           <Tooltip title="Deactivate User">
-            <Button
-              size="small"
-              className="bg-[#05825F] text-[18px] text-white border-0"
-              onClick={() => setConfirmDeactivate({ open: true, user: record })}
-            >
+            <Button size="small" className="bg-[#05825F] text-[18px] text-white border-0"
+              onClick={() => setConfirmDeactivate({ open: true, user: record })}>
               <StopOutlined />
             </Button>
           </Tooltip>
-
           <Tooltip title="Logout from all devices">
             <Button size="small" className="bg-lightorange text-[18px] text-white border-0">
               <HiMiniArrowRightEndOnRectangle />
@@ -169,18 +151,8 @@ const UserManagement: React.FC = () => {
               <BsPaperclip />
             </Button>
           </Tooltip>
-
-          {/* blue rounded Edit */}
-          <Button
-            size="middle"
-            type="default"
-            className="text-white rounded-full bg-blue !py-1 border-0 px-4"
-            onClick={() => {
-              setEditRow(record);
-              setOpenEdit(true);
-            }}
-            icon={<Edit2 size={16} />}
-          >
+          <Button size="middle" type="default" className="text-white rounded-full bg-blue !py-1 border-0 px-4"
+            onClick={() => { setEditRow(record); setOpenEdit(true); }} icon={<Edit2 size={16} />}>
             Edit
           </Button>
         </div>
@@ -193,22 +165,17 @@ const UserManagement: React.FC = () => {
       <BradCrumb />
 
       <div className="p-4 bg-white rounded-lg shadow">
-        {/* Header */}
         <div className="mb-4">
           <h2 className="text-lg font-semibold mt-1">User Management</h2>
         </div>
 
-        {/* Top bar: right search + Connect button */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-3 mb-4">
           <Input
             placeholder="Type to search"
             prefix={<SearchOutlined />}
             style={{ width: 280 }}
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1); // reset to page 1 on new search
-            }}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             allowClear
           />
           <Button type="primary" className="bg-blue" onClick={() => setOpenCreate(true)}>
@@ -216,7 +183,6 @@ const UserManagement: React.FC = () => {
           </Button>
         </div>
 
-        {/* Table */}
         <Table<Row>
           rowKey="id"
           bordered
@@ -233,7 +199,6 @@ const UserManagement: React.FC = () => {
           }}
         />
 
-        {/* footer showing */}
         <div className="text-sm text-gray-500 mt-2">
           {total
             ? `Showing ${(page - 1) * PAGE_SIZE + 1} to ${Math.min(page * PAGE_SIZE, total)} of ${total} entries`
@@ -242,7 +207,21 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* Create New User popup */}
-      <RegisterUserModal open={openCreate} onClose={() => setOpenCreate(false)} />
+      <RegisterUserModal
+        open={openCreate}
+        onClose={() => setOpenCreate(false)}
+        onCreate={async (payload) => {
+          try {
+            await dispatch(createUserThunk({ path: "user", body: payload })).unwrap();
+            message.success("User created successfully");
+            // refresh first, then close (so list is up-to-date when modal disappears)
+            await fetchPage();
+            setOpenCreate(false);
+          } catch (e: any) {
+            message.error(e || "Failed to create user");
+          }
+        }}
+      />
 
       {/* Edit popup */}
       <EditUserModal open={openEdit} onClose={() => setOpenEdit(false)} userId={editRow?.id ?? null} />
@@ -257,15 +236,10 @@ const UserManagement: React.FC = () => {
         onConfirm={async () => {
           if (!confirmDeactivate.user) return;
           try {
-            await dispatch(
-              deactivateUserThunk({ path: API_PATH, id: confirmDeactivate.user.id })
-            ).unwrap();
-
+            await dispatch(deactivateUserThunk({ path: API_PATH, id: confirmDeactivate.user.id })).unwrap();
             setConfirmDeactivate({ open: false, user: null });
             setResultModal({ open: true, ok: true, msg: "User was deactivated successfully." });
-
-            // refresh list
-            fetchPage();
+            await fetchPage(); // refresh list
           } catch (e: any) {
             setConfirmDeactivate({ open: false, user: null });
             setResultModal({ open: true, ok: false, msg: e || "Failed to deactivate user." });

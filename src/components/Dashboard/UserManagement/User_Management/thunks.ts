@@ -178,3 +178,43 @@ export const deactivateUserThunk = createAsyncThunk<
     return rejectWithValue(err?.message ?? "Network error");
   }
 });
+// ---------- CREATE: POST /api/v1/user ----------
+export type CreateUserRequest = {
+  email: string;
+  password: string;
+  role_id: number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: string;
+};
+
+export type CreateUserResponse =
+  | { success: true; message: string; data: User }
+  | { success: false; message: string };
+
+export const createUserThunk = createAsyncThunk<
+  User,
+  { path: string; body: CreateUserRequest },
+  { state: RootState; rejectValue: string }
+>("users/createUser", async ({ path, body }, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const url = `${(import.meta.env.VITE_API_BASE ?? "https://69.62.73.62/api/v1/")}${path.replace(/^\//, "")}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        ...authHeaders(state),
+      },
+      body: JSON.stringify(body),
+    });
+    const json = (await res.json()) as CreateUserResponse;
+
+    if (!json.success) {
+      return rejectWithValue(json?.message || "Failed to create user");
+    }
+    return json.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});

@@ -1,32 +1,31 @@
 // src/modules/UserManagement/Roles/pages/index.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Table, Input, Button, Modal, Form, Select, message } from "antd";
+import { Table, Input, Button, message } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "../../../../store/store";
 import BradCrumb from "../../BreadCrumb";
 import { MdDeleteForever } from "react-icons/md";
 import { BiEdit } from "react-icons/bi";
 import { Plus } from "lucide-react";
+import { ShieldCheck } from "lucide-react";         // icon for permission
+import RolePermissionsModal from "./RolePermissionsModal";
+
 import {
   fetchRolesThunk,
   createRoleThunk,
-  updateRoleThunk,
+  updateRoleThunk, // (still exported, though not used here directly)
   deleteRoleThunk,
 } from "./thunk";
 import { setPage, setLimit, setSearch } from "./slice";
 import type { RootState } from "./types";
+
 import AddRoleModal, {
   AddRoleFormValues,
   OptionBool,
-  // OptionNum,
 } from "./AddRoleModal";
 
-/** category choices to match your API sample */
-// const CATEGORY_OPTIONS: OptionNum[] = [
-//   { label: "Web Users", value: 1 },
-//   { label: "App Users", value: 2 },
-//   { label: "Approval Users", value: 3 },
-// ];
+import EditRoleModal from "./EditRoleModal"; // 👈 separate edit modal
+
 const STATUS_OPTIONS: OptionBool[] = [
   { label: "Active", value: true },
   { label: "Inactive", value: false },
@@ -41,9 +40,10 @@ const RolesPage: React.FC = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+const [permOpen, setPermOpen] = useState(false);
+const [permRoleId, setPermRoleId] = useState<number | null>(null);
+const [permRoleName, setPermRoleName] = useState<string | undefined>(undefined);
 
-  const [form] = Form.useForm();
-  const [editForm] = Form.useForm();
   const path = "roles";
 
   // fetch on mount + when page/limit/search changes
@@ -67,8 +67,7 @@ const RolesPage: React.FC = () => {
       dataIndex: "key",
       key: "key",
       width: 80,
-      render: (_: number, __: any, idx: number) =>
-        (page - 1) * limit + idx + 1,
+      render: (_: number, __: any, idx: number) => (page - 1) * limit + idx + 1,
     },
     {
       title: <span className="text-lighttext font-semibold">Name</span>,
@@ -94,7 +93,9 @@ const RolesPage: React.FC = () => {
         } as const;
         const sty = (map as any)[s] ?? map.Inactive;
         return (
-          <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${sty.bg} ${sty.fg}`}>
+          <span
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${sty.bg} ${sty.fg}`}
+          >
             <span className={`w-2 h-2 rounded-full ${sty.dot}`} />
             {s}
           </span>
@@ -108,15 +109,22 @@ const RolesPage: React.FC = () => {
       render: (_: any, record: any) => (
         <div className="flex gap-3">
           <button
+  title="Permissions"
+  className="bg-[#991B1B] border-none text-white px-3 py-2 flex items-center gap-1 rounded-full"
+  onClick={() => {
+    setPermRoleId(record.id);
+    setPermRoleName(record.name);
+    setPermOpen(true);
+  }}
+>
+  <ShieldCheck size={18} />
+</button>
+
+          <button
             className="bg-blue border-none text-white px-4 py-2 flex items-center gap-1 rounded-full"
             onClick={() => {
-              setEditingId(record.id);
-              editForm.setFieldsValue({
-                name: record.name,
-                category_id: CATEGORY_OPTIONS.find((c) => c.label === record.category)?.value,
-                status: record.status === "Active",
-              });
-              setIsEditOpen(true);
+              setEditingId(record.id);   // just pass the id
+              setIsEditOpen(true);       // EditRoleModal handles fetching & form
             }}
           >
             <BiEdit className="text-[18px]" /> Edit
@@ -124,21 +132,19 @@ const RolesPage: React.FC = () => {
           <button
             className="bg-[#EC221F] border-none text-white px-4 py-2 flex items-center gap-1 rounded-full"
             onClick={() => {
-              Modal.confirm({
-                title: "Delete Role",
-                content: `Are you sure you want to delete "${record.name}"?`,
-                okText: "Delete",
-                okButtonProps: { danger: true },
-                onOk: async () => {
-                  try {
-                    await dispatch(deleteRoleThunk({ path, id: record.id })).unwrap();
-                    message.success("Role deleted");
-                    dispatch(fetchRolesThunk({ path, page, limit, search }));
-                  } catch (e: any) {
-                    message.error(e?.message || "Failed to delete");
-                  }
-                },
-              });
+              // Confirm delete using antd Modal.confirm is fine too;
+              // here we keep it simple.
+              const doDelete = async () => {
+                try {
+                  await dispatch(deleteRoleThunk({ path, id: record.id })).unwrap();
+                  message.success("Role deleted");
+                  dispatch(fetchRolesThunk({ path, page, limit, search }));
+                } catch (e: any) {
+                  message.error(e?.message || "Failed to delete");
+                }
+              };
+              // Basic confirm:
+              if (window.confirm(`Delete "${record.name}"?`)) doDelete();
             }}
           >
             <MdDeleteForever className="text-[18px]" /> Delete
@@ -171,31 +177,6 @@ const RolesPage: React.FC = () => {
     ).unwrap();
     message.success("Role added");
     dispatch(fetchRolesThunk({ path, page, limit, search }));
-  };
-
-  /** Edit */
-  const handleUpdate = async () => {
-    try {
-      const values = await editForm.validateFields();
-      if (!editingId) return;
-      await dispatch(
-        updateRoleThunk({
-          path,
-          id: editingId,
-          body: {
-            name: values.name,
-            category_id: values.category_id,
-            status: values.status,
-          },
-        })
-      ).unwrap();
-      setIsEditOpen(false);
-      setEditingId(null);
-      message.success("Role updated");
-      dispatch(fetchRolesThunk({ path, page, limit, search }));
-    } catch (e: any) {
-      message.error(e?.message || "Failed to update role");
-    }
   };
 
   return (
@@ -245,54 +226,32 @@ const RolesPage: React.FC = () => {
           rowKey="id"
         />
 
-        {/* Add Modal (moved to separate file) */}
+        {/* Add Modal */}
         <AddRoleModal
           open={isAddOpen}
           onClose={() => setIsAddOpen(false)}
           onSubmit={handleAddSubmit}
-          // categoryOptions={CATEGORY_OPTIONS}
           statusOptions={STATUS_OPTIONS}
         />
+<RolePermissionsModal
+  open={permOpen}
+  roleId={permRoleId}
+  roleName={permRoleName}
+  onClose={() => { setPermOpen(false); setPermRoleId(null); }}
+/>
 
-        {/* Edit Modal (kept inline) */}
-        <Modal
-          title={<span className="text-lg font-semibold">Edit Role</span>}
+        {/* Edit Modal (separate component) */}
+        <EditRoleModal
           open={isEditOpen}
-          onCancel={() => { setIsEditOpen(false); setEditingId(null); }}
-          destroyOnClose
-          footer={[
-            <Button key="cancel" onClick={() => { setIsEditOpen(false); setEditingId(null); }}>
-              Cancel
-            </Button>,
-            <Button key="save" type="primary" className="bg-blue" onClick={handleUpdate}>
-              Update
-            </Button>,
-          ]}
-        >
-          {/* <Form layout="vertical" form={editForm} className="mt-2">
-            {/* <Form.Item
-              label={<span className="font-medium">Category :</span>}
-              name="category_id"
-              rules={[{ required: true, message: "Please select a category" }]}
-            >
-              <Select options={CATEGORY_OPTIONS} placeholder="Select category" />
-            </Form.Item> 
-            <Form.Item
-              label={<span className="font-medium">Role Name :</span>}
-              name="name"
-              rules={[{ required: true, message: "Please enter a role name" }]}
-            >
-              <Input placeholder="Enter role name" />
-            </Form.Item>
-            <Form.Item
-              label={<span className="font-medium">Status :</span>}
-              name="status"
-              rules={[{ required: true }]}
-            >
-              <Select options={STATUS_OPTIONS} />
-            </Form.Item>
-          </Form> */}
-        </Modal>
+          roleId={editingId}
+          onClose={() => {
+            setIsEditOpen(false);
+            setEditingId(null);
+          }}
+          onSaved={async () => {
+            await dispatch(fetchRolesThunk({ path, page, limit, search })).unwrap().catch(() => {});
+          }}
+        />
       </div>
     </>
   );

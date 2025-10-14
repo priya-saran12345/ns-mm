@@ -5,29 +5,28 @@ import {
   fetchUsersThunk,
   fetchUserByIdThunk,
   updateUserThunk,
-  deactivateUserThunk, // ← import together
+  deactivateUserThunk,
+  createUserThunk,            // ✅ import create thunk
 } from "./thunks";
 
 const initialState: UsersState = {
   items: [],
   loading: false,
   error: null,
-
   page: 1,
   limit: 10,
   total: 0,
   totalPages: 0,
   search: "",
-
   selected: null,
   detailLoading: false,
   detailError: null,
-
   updateLoading: false,
   updateError: null,
-
   deactivateLoading: false,
   deactivateError: null,
+  createLoading: false,        // ✅ create flags
+  createError: null,
 };
 
 const usersSlice = createSlice({
@@ -55,7 +54,7 @@ const usersSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // LIST
+      /** ===== LIST ===== */
       .addCase(fetchUsersThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -87,7 +86,7 @@ const usersSlice = createSlice({
         state.error = (action.payload as string) || "Failed to fetch users";
       })
 
-      // SINGLE
+      /** ===== SINGLE ===== */
       .addCase(fetchUserByIdThunk.pending, (state) => {
         state.detailLoading = true;
         state.detailError = null;
@@ -101,7 +100,7 @@ const usersSlice = createSlice({
         state.detailError = (action.payload as string) || "Failed to fetch user";
       })
 
-      // UPDATE
+      /** ===== UPDATE ===== */
       .addCase(updateUserThunk.pending, (state) => {
         state.updateLoading = true;
         state.updateError = null;
@@ -118,7 +117,7 @@ const usersSlice = createSlice({
         state.updateError = (action.payload as string) || "Failed to update user";
       })
 
-      // DEACTIVATE  ← remove the stray semicolon before this block
+      /** ===== DEACTIVATE ===== */
       .addCase(deactivateUserThunk.pending, (state) => {
         state.deactivateLoading = true;
         state.deactivateError = null;
@@ -133,6 +132,21 @@ const usersSlice = createSlice({
       .addCase(deactivateUserThunk.rejected, (state, action) => {
         state.deactivateLoading = false;
         state.deactivateError = (action.payload as string) || "Failed to deactivate user";
+      })
+
+      /** ===== CREATE ===== */
+      .addCase(createUserThunk.pending, (state) => {
+        state.createLoading = true;
+        state.createError = null;
+      })
+      .addCase(createUserThunk.fulfilled, (state, action) => {
+        state.createLoading = false;
+        state.items = [action.payload, ...state.items];
+        state.total += 1;
+      })
+      .addCase(createUserThunk.rejected, (state, action) => {
+        state.createLoading = false;
+        state.createError = (action.payload as string) || "Failed to create user";
       });
   },
 });

@@ -5,6 +5,7 @@ import uiReducer from './uiSlice';
 import usersReducer from '../components/Dashboard/UserManagement/User_Management/slice';
 import rolesSlice from '../components/Dashboard/Master/Roles/slice';
 import categoriesSlice from '../components/Dashboard/Master/Category/slice';
+import modulesSlice from '../components/Dashboard/Master/Modules/slice';
 
 // Create store
 export const store = configureStore({
@@ -14,6 +15,7 @@ export const store = configureStore({
     users: usersReducer,
     roles:rolesSlice,
     category:categoriesSlice,
+    modules:modulesSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
