@@ -7,6 +7,7 @@ import rolesSlice from '../components/Dashboard/Master/Roles/slice';
 import categoriesSlice from '../components/Dashboard/Master/Category/slice';
 import modulesSlice from '../components/Dashboard/Master/Modules/slice';
 import villagesSlice from '../components/Dashboard/Master/Village/slice';
+import banksSlice from '../components/Dashboard/Master/Bank/slice';
 
 // Create store
 export const store = configureStore({
@@ -17,7 +18,8 @@ export const store = configureStore({
     roles:rolesSlice,
     category:categoriesSlice,
     modules:modulesSlice,
-    villages:villagesSlice
+    villages:villagesSlice,
+   banks:banksSlice ,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

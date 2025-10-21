@@ -1,5 +1,5 @@
 import React from 'react';
-import BankMasterData from '../../components/Dashboard/Master/BankMaster';
+import BankMasterData from '../../components/Dashboard/Master/Bank/BankMaster';
 
 const DashboardPage: React.FC = () => {
   return (
