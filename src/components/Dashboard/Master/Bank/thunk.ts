@@ -5,8 +5,12 @@ import type {
   BanksListApiResponse,
   Bank,
   BanksPagination,
+  BankByIdApiResponse,
+  BankUpdateRequest,
+  BankUpdateApiResponse,
+  BankCreateRequest,
+  BankCreateApiResponse,
 } from "./types";
-
 const BASE_URL = import.meta.env.VITE_API_BASE ?? "https://69.62.73.62/api/v1/";
 
 function authHeaders(state: RootStateWithBanks) {
@@ -37,11 +41,7 @@ function normalizePagination(p: any): BanksPagination {
   };
 }
 
-/**
- * GET /banks?page=&limit=&sort_by=&sort[&search=]
- * Matches your example:
- * https://69.62.73.62/api/v1/banks?page=1&limit=10&sort_by=created_at&sort=desc
- */
+/** List */
 export const fetchBanksThunk = createAsyncThunk<
   { items: Bank[]; pagination: BanksPagination },
   FetchBanksParams | void,
@@ -50,13 +50,12 @@ export const fetchBanksThunk = createAsyncThunk<
   try {
     const state = getState();
     const s = state.banks;
-
     const url = buildUrl("banks", {
       page: args?.page ?? s.page ?? 1,
       limit: args?.limit ?? s.limit ?? 10,
       sort_by: args?.sort_by ?? s.sort_by ?? "created_at",
       sort: args?.sort ?? s.sort ?? "desc",
-      search: args?.search ?? s.search ?? "", // include only if BE supports
+      search: args?.search ?? s.search ?? "",
     });
 
     const res = await fetch(url, { headers: authHeaders(state) });
@@ -66,10 +65,75 @@ export const fetchBanksThunk = createAsyncThunk<
       return rejectWithValue((json as any)?.message || "Failed to fetch banks");
     }
 
-    const items = json.data?.items ?? [];
-    const pagination = normalizePagination(json.data?.pagination);
-    return { items, pagination };
+    return {
+      items: json.data?.items ?? [],
+      pagination: normalizePagination(json.data?.pagination),
+    };
   } catch (err: any) {
     return rejectWithValue(err?.message ?? "Network error");
   }
 });
+
+/** GET /banks/{id} */
+export const retrieveBankThunk = createAsyncThunk<
+  Bank,
+  number,
+  { state: RootStateWithBanks; rejectValue: string }
+>("banks/retrieveById", async (id, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const res = await fetch(buildUrl(`banks/${id}`), { headers: authHeaders(state) });
+    const json = (await res.json()) as BankByIdApiResponse;
+    if (!("success" in json) || !json.success) {
+      return rejectWithValue((json as any)?.message || "Failed to retrieve bank");
+    }
+    return json.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});
+
+/** PUT /banks/{id} */
+export const updateBankThunk = createAsyncThunk<
+  Bank,
+  { id: number; data: BankUpdateRequest },
+  { state: RootStateWithBanks; rejectValue: string }
+>("banks/update", async ({ id, data }, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const res = await fetch(buildUrl(`banks/${id}`), {
+      method: "PUT",
+      headers: authHeaders(state),
+      body: JSON.stringify(data),
+    });
+    const json = (await res.json()) as BankUpdateApiResponse;
+    if (!("success" in json) || !json.success) {
+      return rejectWithValue((json as any)?.message || "Failed to update bank");
+    }
+    return json.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});
+export const createBankThunk = createAsyncThunk<
+  Bank,
+  BankCreateRequest,
+  { state: RootStateWithBanks; rejectValue: string }
+>("banks/create", async (payload, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const res = await fetch(buildUrl("banks"), {
+      method: "POST",
+      headers: authHeaders(state),
+      body: JSON.stringify(payload),
+    });
+    const json = (await res.json()) as BankCreateApiResponse;
+    if (!("success" in json) || !json.success) {
+      return rejectWithValue((json as any)?.message || "Failed to create bank");
+    }
+    return json.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});
+

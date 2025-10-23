@@ -1,6 +1,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { BanksState, Bank } from "./types";
-import { fetchBanksThunk } from "./thunk";
+import {
+  fetchBanksThunk,
+  retrieveBankThunk,
+  updateBankThunk,
+  createBankThunk,   // ← NEW
+} from "./thunk";
 
 const initialState: BanksState = {
   items: [],
@@ -15,6 +20,11 @@ const initialState: BanksState = {
   sort_by: "created_at",
   sort: "desc",
   search: "",
+
+  retrieving: false,
+  updating: false,
+  creating: false,   // ← NEW
+  selected: null,
 };
 
 const banksSlice = createSlice({
@@ -29,7 +39,7 @@ const banksSlice = createSlice({
     },
     setBanksSort(
       state,
-      action: PayloadAction<{ sort_by?: string; sort?: "asc" | "desc" }>,
+      action: PayloadAction<{ sort_by?: string; sort?: "asc" | "desc" }>
     ) {
       if (action.payload.sort_by) state.sort_by = action.payload.sort_by;
       if (action.payload.sort) state.sort = action.payload.sort;
@@ -45,9 +55,13 @@ const banksSlice = createSlice({
     clearBanksError(state) {
       state.error = null;
     },
+    clearSelectedBank(state) {
+      state.selected = null;
+    },
   },
   extraReducers: (builder) => {
     builder
+      // list
       .addCase(fetchBanksThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -64,6 +78,53 @@ const banksSlice = createSlice({
       .addCase(fetchBanksThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || "Failed to fetch banks";
+      })
+
+      // retrieve
+      .addCase(retrieveBankThunk.pending, (state) => {
+        state.retrieving = true;
+        state.error = null;
+        state.selected = null;
+      })
+      .addCase(retrieveBankThunk.fulfilled, (state, action) => {
+        state.retrieving = false;
+        state.selected = action.payload;
+      })
+      .addCase(retrieveBankThunk.rejected, (state, action) => {
+        state.retrieving = false;
+        state.error = (action.payload as string) || "Failed to load bank";
+      })
+
+      // update
+      .addCase(updateBankThunk.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(updateBankThunk.fulfilled, (state, action) => {
+        state.updating = false;
+        const idx = state.items.findIndex((b) => b.id === action.payload.id);
+        if (idx !== -1) state.items[idx] = action.payload;
+        state.selected = action.payload;
+      })
+      .addCase(updateBankThunk.rejected, (state, action) => {
+        state.updating = false;
+        state.error = (action.payload as string) || "Failed to update bank";
+      })
+
+      // create
+      .addCase(createBankThunk.pending, (state) => {
+        state.creating = true;
+        state.error = null;
+      })
+      .addCase(createBankThunk.fulfilled, (state, action) => {
+        state.creating = false;
+        // put new row at top of current page view
+        state.items = [action.payload, ...state.items];
+        state.total += 1;
+      })
+      .addCase(createBankThunk.rejected, (state, action) => {
+        state.creating = false;
+        state.error = (action.payload as string) || "Failed to create bank";
       });
   },
 });
@@ -75,6 +136,7 @@ export const {
   setBanksSearch,
   setBanks,
   clearBanksError,
+  clearSelectedBank,
 } = banksSlice.actions;
 
 export default banksSlice.reducer;

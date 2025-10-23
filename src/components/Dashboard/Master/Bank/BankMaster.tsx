@@ -1,17 +1,34 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useAppDispatch } from "../../../../store/store";
-
+import type { AppDispatch } from "../../../../store/store";
 import type { RootStateWithBanks, Bank } from "./types";
-import { fetchBanksThunk } from "./thunk";
+import {
+  fetchBanksThunk,
+  retrieveBankThunk,
+  updateBankThunk,
+  createBankThunk, // ← NEW
+} from "./thunk";
 import {
   setBanksLimit,
   setBanksPage,
   setBanksSearch,
   setBanksSort,
+  clearSelectedBank,
 } from "./slice";
 
-import { Table, Input, Button, Modal, Upload, Pagination, Space, Typography, Form, Tag } from "antd";
+import {
+  Table,
+  Input,
+  Button,
+  Modal,
+  Upload,
+  Pagination,
+  Space,
+  Typography,
+  Form,
+  Switch,
+  message,
+} from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { MdOutlineCloudUpload, MdOutlineFileDownload } from "react-icons/md";
 import { BiEdit } from "react-icons/bi";
@@ -34,21 +51,35 @@ const statusPill = (status: boolean) => {
 
 const BankListPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { items, loading, page, limit, total, sort_by, sort, search } =
+  const { items, loading, page, limit, total, sort_by, sort, search, retrieving, updating, creating, selected } =
     useSelector((s: RootStateWithBanks) => s.banks);
 
   // local UI states
   const [localSearch, setLocalSearch] = useState(search ?? "");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editRecord, setEditRecord] = useState<Bank | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false); // ← NEW
+  const [editForm] = Form.useForm<Pick<Bank, "bank_name" | "ifsc_code" | "branch" | "status">>();
+  const [addForm] = Form.useForm<Pick<Bank, "bank_name" | "ifsc_code" | "branch" | "status">>(); // ← NEW
 
-  // Fetch on mount & on paging/sort/search change
+  // fetch list
   useEffect(() => {
     dispatch(fetchBanksThunk());
   }, [dispatch, page, limit, sort_by, sort, search]);
 
-  // Columns
+  // when selected (for edit)
+  useEffect(() => {
+    if (selected && isEditOpen) {
+      editForm.setFieldsValue({
+        bank_name: selected.bank_name,
+        ifsc_code: selected.ifsc_code,
+        branch: selected.branch,
+        status: selected.status,
+      });
+    }
+  }, [selected, isEditOpen, editForm]);
+
+  // columns
   const columns = useMemo(
     () => [
       {
@@ -85,9 +116,7 @@ const BankListPage: React.FC = () => {
         title: <span className="text-lighttext font-semibold">Created</span>,
         dataIndex: "created_at",
         key: "created_at",
-        render: (v: string) => (
-          <Text type="secondary">{v ? new Date(v).toLocaleString() : "-"}</Text>
-        ),
+        render: (v: string) => <Text type="secondary">{v ? new Date(v).toLocaleString() : "-"}</Text>,
       },
       {
         title: <span className="text-lighttext font-semibold">Action</span>,
@@ -98,9 +127,13 @@ const BankListPage: React.FC = () => {
             type="primary"
             icon={<BiEdit />}
             className="bg-blue rounded-full"
-            onClick={() => {
-              setEditRecord(record);
+            onClick={async () => {
               setIsEditOpen(true);
+              try {
+                await dispatch(retrieveBankThunk(record.id)).unwrap();
+              } catch (e: any) {
+                message.error(e || "Failed to load bank");
+              }
             }}
           >
             Edit
@@ -108,40 +141,80 @@ const BankListPage: React.FC = () => {
         ),
       },
     ],
-    [page, limit]
+    [page, limit, dispatch]
   );
 
-  // Search
+  // search
   const onSearchApply = () => dispatch(setBanksSearch(localSearch.trim()));
 
-  // Pagination
+  // pagination
   const onPageChange = (newPage: number, newPageSize?: number) => {
     if (newPageSize && newPageSize !== limit) dispatch(setBanksLimit(newPageSize));
     if (newPage !== page) dispatch(setBanksPage(newPage));
   };
 
-  // Export current table view
+  // export/template
   const handleExport = () => {
     const ws = XLSX.utils.json_to_sheet(items);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Banks");
     XLSX.writeFile(wb, `Banks_p${page}_l${limit}.xlsx`);
   };
-
-  // Download empty import template
   const handleDownloadTemplate = () => {
-    const worksheet = XLSX.utils.json_to_sheet([], {
-      header: ["bank_name", "ifsc_code", "branch", "status"],
-    });
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "BankMaster");
-    XLSX.writeFile(workbook, "BankMaster_Template.xlsx");
+    const ws = XLSX.utils.json_to_sheet([], { header: ["bank_name", "ifsc_code", "branch", "status"] });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "BankMaster");
+    XLSX.writeFile(wb, "BankMaster_Template.xlsx");
   };
 
-  // (Optional) Sort toggler for created_at
+  // sort toggle
   const toggleCreatedSort = () => {
-    const next = sort === "desc" ? "asc" : "desc";
-    dispatch(setBanksSort({ sort_by: "created_at", sort: next }));
+    dispatch(setBanksSort({ sort_by: "created_at", sort: sort === "desc" ? "asc" : "desc" }));
+  };
+
+  // update submit
+  const handleUpdate = async () => {
+    try {
+      const values = await editForm.validateFields();
+      if (!selected) return;
+      await dispatch(
+        updateBankThunk({
+          id: selected.id,
+          data: {
+            bank_name: values.bank_name,
+            ifsc_code: values.ifsc_code,
+            branch: values.branch,
+            status: values.status,
+          },
+        })
+      ).unwrap();
+      message.success("Bank updated");
+      setIsEditOpen(false);
+      dispatch(clearSelectedBank());
+    } catch (e: any) {
+      if (typeof e === "string") message.error(e);
+    }
+  };
+
+  // create submit
+  const handleCreate = async () => {
+    try {
+      const values = await addForm.validateFields();
+      await dispatch(
+        createBankThunk({
+          bank_name: values.bank_name,
+          ifsc_code: values.ifsc_code,
+          branch: values.branch,
+          status: values.status ?? true,
+        })
+      ).unwrap();
+      message.success("Bank created");
+      setIsAddOpen(false);
+      addForm.resetFields();
+      // optionally: dispatch(fetchBanksThunk());
+    } catch (e: any) {
+      if (typeof e === "string") message.error(e);
+    }
   };
 
   return (
@@ -165,12 +238,14 @@ const BankListPage: React.FC = () => {
               style={{ width: 260 }}
             />
             <Button onClick={onSearchApply}>Search</Button>
-            <Button onClick={toggleCreatedSort}>
-              Sort by Created ({sort.toUpperCase()})
-            </Button>
+            <Button onClick={toggleCreatedSort}>Sort by Created ({sort.toUpperCase()})</Button>
             <Button onClick={handleDownloadTemplate}>
               <MdOutlineFileDownload style={{ fontSize: 18, marginRight: 6 }} />
               Download Format
+            </Button>
+            {/* ← NEW Add button */}
+            <Button type="primary" className="bg-blue" onClick={() => setIsAddOpen(true)}>
+              Add
             </Button>
             <Button onClick={() => setIsImportOpen(true)}>Import</Button>
             <Button onClick={handleExport}>Export</Button>
@@ -187,7 +262,7 @@ const BankListPage: React.FC = () => {
           pagination={false}
         />
 
-        {/* Footer: Pagination */}
+        {/* Pagination */}
         <div className="flex justify-end mt-4">
           <Pagination
             current={page}
@@ -199,67 +274,67 @@ const BankListPage: React.FC = () => {
           />
         </div>
 
-        {/* Edit Modal (scaffold; wire to your update API when ready) */}
+        {/* Edit Modal */}
         <Modal
           title={<span className="text-lg font-semibold">Edit Bank</span>}
           open={isEditOpen}
-          onCancel={() => setIsEditOpen(false)}
-          footer={[
-            <Button key="cancel" onClick={() => setIsEditOpen(false)}>
-              Cancel
-            </Button>,
-            <Button key="update" type="primary" className="bg-blue">
-              Update
-            </Button>,
-          ]}
+          onCancel={() => {
+            setIsEditOpen(false);
+            dispatch(clearSelectedBank());
+          }}
+          confirmLoading={updating}
+          onOk={handleUpdate}
+          okText="Update"
         >
-          {editRecord && (
-            <Form layout="vertical" className="mt-2">
-              <Form.Item label="Bank Name">
-                <Input
-                  value={editRecord.bank_name}
-                  onChange={(e) =>
-                    setEditRecord({ ...editRecord, bank_name: e.target.value })
-                  }
-                />
-              </Form.Item>
-              <Form.Item label="IFSC Code">
-                <Input
-                  value={editRecord.ifsc_code}
-                  onChange={(e) =>
-                    setEditRecord({ ...editRecord, ifsc_code: e.target.value })
-                  }
-                />
-              </Form.Item>
-              <Form.Item label="Branch">
-                <Input
-                  value={editRecord.branch}
-                  onChange={(e) =>
-                    setEditRecord({ ...editRecord, branch: e.target.value })
-                  }
-                />
-              </Form.Item>
-              <Form.Item label="Status">
-                <Tag color={editRecord.status ? "green" : "red"}>
-                  {editRecord.status ? "Active" : "Inactive"}
-                </Tag>
-              </Form.Item>
-            </Form>
-          )}
+          <Form layout="vertical" form={editForm} initialValues={{ status: true }}>
+            <Form.Item label="Bank Name" name="bank_name" rules={[{ required: true, message: "Bank name is required" }]}>
+              <Input disabled={retrieving} />
+            </Form.Item>
+            <Form.Item label="IFSC Code" name="ifsc_code" rules={[{ required: true, message: "IFSC code is required" }]}>
+              <Input disabled={retrieving} />
+            </Form.Item>
+            <Form.Item label="Branch" name="branch" rules={[{ required: true, message: "Branch is required" }]}>
+              <Input disabled={retrieving} />
+            </Form.Item>
+            <Form.Item label="Status" name="status" valuePropName="checked">
+              <Switch disabled={retrieving} />
+            </Form.Item>
+          </Form>
         </Modal>
 
-        {/* Import Modal (UI only; connect to your import API) */}
+        {/* Add Modal */}
+        <Modal
+          title={<span className="text-lg font-semibold">Add Bank</span>}
+          open={isAddOpen}
+          onCancel={() => setIsAddOpen(false)}
+          confirmLoading={creating}
+          onOk={handleCreate}
+          okText="Create"
+        >
+          <Form layout="vertical" form={addForm} initialValues={{ status: true }}>
+            <Form.Item label="Bank Name" name="bank_name" rules={[{ required: true, message: "Bank name is required" }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="IFSC Code" name="ifsc_code" rules={[{ required: true, message: "IFSC code is required" }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Branch" name="branch" rules={[{ required: true, message: "Branch is required" }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Status" name="status" valuePropName="checked">
+              <Switch />
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* Import Modal (UI only) */}
         <Modal
           title="Import Bank Master"
           open={isImportOpen}
           onCancel={() => setIsImportOpen(false)}
           footer={[
-            <Button key="cancel" onClick={() => setIsImportOpen(false)}>
-              Cancel
-            </Button>,
-            <Button key="import" type="primary" className="bg-blue">
-              Import
-            </Button>,
+            <Button key="cancel" onClick={() => setIsImportOpen(false)}>Cancel</Button>,
+            <Button key="import" type="primary" className="bg-blue">Import</Button>,
           ]}
         >
           <Upload.Dragger
@@ -272,9 +347,7 @@ const BankListPage: React.FC = () => {
             <p className="ant-upload-drag-icon">
               <MdOutlineCloudUpload style={{ fontSize: 32, color: "#1890ff" }} />
             </p>
-            <p className="text-textheading mb-0 font-medium text-lg">
-              Choose a file or drag & drop it here
-            </p>
+            <p className="text-textheading mb-0 font-medium text-lg">Choose a file or drag & drop it here</p>
             <p className="text-lighttext text-sm">Excel or CSV formats, up to 5MB</p>
             <Button className="mt-3 font-medium text-textheading">Browse File</Button>
           </Upload.Dragger>

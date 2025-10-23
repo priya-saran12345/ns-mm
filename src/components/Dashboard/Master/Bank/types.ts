@@ -63,4 +63,60 @@ export interface BanksState {
   sort_by: string;
   sort: "asc" | "desc";
   search: string;
+  
+  retrieving?: boolean;
+  updating?: boolean;
+  creating?: boolean;   // ← NEW
+  selected?: Bank | null;
+
 }
+// --- keep your existing types and add the following ---
+
+/** Single bank GET response */
+export type BankByIdApiResponse =
+  | { success: true; message: string; data: Bank }
+  | { success: false; message: string };
+
+/** PUT /banks/{id} request body */
+export interface BankUpdateRequest {
+  bank_name: string;
+  ifsc_code: string;
+  branch: string;
+  status: boolean;
+}
+
+/** PUT /banks/{id} response (usually returns updated entity) */
+export type BankUpdateApiResponse =
+  | { success: true; message: string; data: Bank }
+  | { success: false; message: string };
+
+// Extend slice state
+export interface BanksState {
+  items: Bank[];
+  loading: boolean;
+  error: string | null;
+
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+
+  sort_by: string;
+  sort: "asc" | "desc";
+  search: string;
+
+  // ↓ new flags for edit modal lifecycle
+  retrieving?: boolean;
+  updating?: boolean;
+  selected?: Bank | null;
+}
+export interface BankCreateRequest {
+  bank_name: string;
+  ifsc_code: string;
+  branch: string;
+  status: boolean;
+}
+export type BankCreateApiResponse =
+  | { success: true; message: string; data: Bank }
+  | { success: false; message: string };
+
