@@ -3,7 +3,7 @@ import type {
   RootStateWithVillages,
   FetchVillagesParams,
   VillagesListApiResponse,
-  Village,
+  VillageRow,
   VillagesPagination,
 } from "./types";
 
@@ -38,12 +38,11 @@ function normalizePagination(p: any): VillagesPagination {
 }
 
 /**
- * GET /master-data/villages?page=1&limit=10[&search=&district_code=&tehsil_code=]
- * Matches your example:
- * https://69.62.73.62/api/v1/master-data/villages?page=1&limit=10
+ * GET /master-data/villages?page&limit[&search&district_code&tehsil_code]
+ * (If your server exposes it at /master-data, switch the path below to "master-data")
  */
 export const fetchVillagesThunk = createAsyncThunk<
-  { items: Village[]; pagination: VillagesPagination },
+  { items: VillageRow[]; pagination: VillagesPagination },
   FetchVillagesParams | void,
   { state: RootStateWithVillages; rejectValue: string }
 >("villages/fetchList", async (args, { getState, rejectWithValue }) => {
@@ -52,7 +51,7 @@ export const fetchVillagesThunk = createAsyncThunk<
     const page = args?.page ?? state.villages.page ?? 1;
     const limit = args?.limit ?? state.villages.limit ?? 10;
 
-    const url = buildUrl("master-data/villages", {
+    const url = buildUrl("master-data", {
       page,
       limit,
       search: args?.search ?? state.villages.search ?? "",
@@ -67,9 +66,10 @@ export const fetchVillagesThunk = createAsyncThunk<
       return rejectWithValue((json as any)?.message || "Failed to fetch villages");
     }
 
-    const items = json.data?.villages ?? [];
+    // tolerate either "villages" or "items"
+    const raw = (json.data?.villages ?? json.data?.items ?? []) as VillageRow[];
     const pagination = normalizePagination(json.data?.pagination);
-    return { items, pagination };
+    return { items: raw, pagination };
   } catch (err: any) {
     return rejectWithValue(err?.message ?? "Network error");
   }
