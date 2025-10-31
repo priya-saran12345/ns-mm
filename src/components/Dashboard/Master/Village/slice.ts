@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { VillagesState, Village } from "./types";
-import { fetchVillagesThunk } from "./thunk";
+import type { VillagesState, VillageRow, MasterDataImportSummary } from "./types";
+import { fetchVillagesThunk, importMasterDataThunk, exportMasterDataThunk } from "./thunk";
 
 const initialState: VillagesState = {
   items: [],
@@ -15,6 +15,11 @@ const initialState: VillagesState = {
   search: "",
   district_code: undefined,
   tehsil_code: undefined,
+
+  // NEW
+  importing: false,
+  importResult: null,
+  exporting: false,
 };
 
 const villagesSlice = createSlice({
@@ -39,7 +44,7 @@ const villagesSlice = createSlice({
       state.tehsil_code = action.payload.tehsil_code;
       state.page = 1;
     },
-    setVillages(state, action: PayloadAction<Village[]>) {
+    setVillages(state, action: PayloadAction<VillageRow[]>) {
       state.items = action.payload;
     },
     clearVillagesError(state) {
@@ -48,6 +53,7 @@ const villagesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // LIST
       .addCase(fetchVillagesThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -64,6 +70,34 @@ const villagesSlice = createSlice({
       .addCase(fetchVillagesThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || "Failed to fetch villages";
+      })
+
+      // IMPORT
+      .addCase(importMasterDataThunk.pending, (state) => {
+        state.importing = true;
+        state.error = null;
+        state.importResult = null;
+      })
+      .addCase(importMasterDataThunk.fulfilled, (state, action) => {
+        state.importing = false;
+        state.importResult = action.payload as MasterDataImportSummary;
+      })
+      .addCase(importMasterDataThunk.rejected, (state, action) => {
+        state.importing = false;
+        state.error = (action.payload as string) || "Import failed";
+      })
+
+      // EXPORT
+      .addCase(exportMasterDataThunk.pending, (state) => {
+        state.exporting = true;
+        state.error = null;
+      })
+      .addCase(exportMasterDataThunk.fulfilled, (state) => {
+        state.exporting = false;
+      })
+      .addCase(exportMasterDataThunk.rejected, (state, action) => {
+        state.exporting = false;
+        state.error = (action.payload as string) || "Export failed";
       });
   },
 });

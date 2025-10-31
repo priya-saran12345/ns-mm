@@ -1,4 +1,18 @@
 // One row in Master Data (village + hamlet + admin units)
+
+
+
+
+export type MasterDataImportType = "CSV" | "XLS" | "XLSX" | "JSON";
+export type MasterDataExportType = "csv" | "xls" | "json";
+
+export interface MasterDataImportSummary {
+  inserted: number;
+  updated: number;
+  failed: number;
+  errors?: Array<{ row?: number; message: string }>;
+}
+
 export interface VillageRow {
   id: number;
 
@@ -86,4 +100,8 @@ export interface VillagesState {
   search: string;
   district_code?: string;
   tehsil_code?: string;
+    importing?: boolean;
+  importResult?: MasterDataImportSummary | null;
+  exporting?: boolean;
+
 }

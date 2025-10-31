@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useAppDispatch } from "../../../../store/store";
 import type { RootStateWithVillages, VillageRow } from "./types";
-import { fetchVillagesThunk } from "./thunk";
+import { fetchVillagesThunk, importMasterDataThunk, exportMasterDataThunk } from "./thunk";
 import {
   setVillagesPage,
   setVillagesLimit,
@@ -10,7 +10,18 @@ import {
   setVillageFilters,
 } from "./slice";
 
-import { Table, Input, Button, Modal, Upload, Pagination, Select, Space, Typography } from "antd";
+import {
+  Table,
+  Input,
+  Button,
+  Modal,
+  Upload,
+  Pagination,
+  Select,
+  Space,
+  Typography,
+  message,
+} from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { MdOutlineCloudUpload, MdOutlineFileDownload } from "react-icons/md";
 import * as XLSX from "xlsx";
@@ -32,11 +43,30 @@ const statusPill = (status: boolean) => {
 
 const VillageIndexPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { items, loading, page, limit, total, search, district_code, tehsil_code } =
-    useSelector((s: RootStateWithVillages) => s.villages);
+  const {
+    items,
+    loading,
+    page,
+    limit,
+    total,
+    search,
+    district_code,
+    tehsil_code,
+    importing,
+    importResult,
+    exporting,
+  } = useSelector((s: RootStateWithVillages) => s.villages);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // local UI state
   const [localSearch, setLocalSearch] = useState(search ?? "");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // import state
+  const [importType, setImportType] = useState<"CSV" | "XLS" | "XLSX" | "JSON">("CSV");
+  const [importFile, setImportFile] = useState<File | null>(null);
+
+  // export state
+  const [exportType, setExportType] = useState<"csv" | "xls" | "json">("csv");
 
   useEffect(() => {
     dispatch(fetchVillagesThunk());
@@ -129,7 +159,7 @@ const VillageIndexPage: React.FC = () => {
     [page, limit]
   );
 
-  // Template
+  // Template (Excel)
   const handleDownloadTemplate = () => {
     const worksheet = XLSX.utils.json_to_sheet([], {
       header: [
@@ -148,11 +178,44 @@ const VillageIndexPage: React.FC = () => {
     XLSX.writeFile(workbook, "VillageMaster_Template.xlsx");
   };
 
-  const handleExport = () => {
-    const ws = XLSX.utils.json_to_sheet(items);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "MasterData");
-    XLSX.writeFile(wb, `MasterData_p${page}_l${limit}.xlsx`);
+  // Server export
+  const handleServerExport = async () => {
+    try {
+      const { blob, filename } = await dispatch(
+        exportMasterDataThunk({ type: exportType })
+      ).unwrap();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || `master-data.${exportType}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      message.error(typeof e === "string" ? e : "Export failed");
+    }
+  };
+
+  // Import
+  const handleImport = async () => {
+    if (!importFile) {
+      message.warning("Please choose a file to import.");
+      return;
+    }
+    try {
+      const res = await dispatch(
+        importMasterDataThunk({ type: importType, file: importFile })
+      ).unwrap();
+      message.success(
+        `Imported: ${res.inserted} inserted, ${res.updated} updated, ${res.failed} failed`
+      );
+      setIsModalOpen(false);
+      setImportFile(null);
+      dispatch(fetchVillagesThunk()); // refresh
+    } catch (e: any) {
+      message.error(typeof e === "string" ? e : "Import failed");
+    }
   };
 
   const onSearchApply = () => dispatch(setVillagesSearch(localSearch.trim()));
@@ -218,12 +281,31 @@ const VillageIndexPage: React.FC = () => {
               ]}
             />
 
+            {/* Download Import Format */}
             <Button onClick={handleDownloadTemplate}>
               <MdOutlineFileDownload style={{ fontSize: 18, marginRight: 6 }} />
               Download Format
             </Button>
+
+            {/* Import */}
             <Button onClick={() => setIsModalOpen(true)}>Import</Button>
-            <Button onClick={handleExport}>Export</Button>
+
+            {/* Server Export */}
+            <Space.Compact>
+              <Select
+                value={exportType}
+                style={{ width: 110 }}
+                onChange={(v: "csv" | "xls" | "json") => setExportType(v)}
+                options={[
+                  { value: "csv", label: "CSV" },
+                  { value: "xls", label: "XLS" },
+                  { value: "json", label: "JSON" },
+                ]}
+              />
+              <Button loading={exporting} onClick={handleServerExport}>
+                Export
+              </Button>
+            </Space.Compact>
           </Space>
         </div>
 
@@ -247,30 +329,58 @@ const VillageIndexPage: React.FC = () => {
           />
         </div>
 
+        {/* Import Modal */}
         <Modal
           title="Import Village Master"
           open={isModalOpen}
-          onCancel={() => setIsModalOpen(false)}
+          onCancel={() => { setIsModalOpen(false); setImportFile(null); }}
           footer={[
             <Button key="cancel" onClick={() => setIsModalOpen(false)}>Cancel</Button>,
-            <Button key="import" type="primary" onClick={() => setIsModalOpen(false)}>Import</Button>,
+            <Button key="import" type="primary" loading={importing} onClick={handleImport}>
+              Import
+            </Button>,
           ]}
         >
+          <div className="flex gap-3 mb-3">
+            <span className="pt-1 text-sm text-gray-600">File Type:</span>
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={importType}
+              onChange={(e) =>
+                setImportType(e.target.value as "CSV" | "XLS" | "XLSX" | "JSON")
+              }
+            >
+              <option value="CSV">CSV</option>
+              <option value="XLS">XLS</option>
+              <option value="XLSX">XLSX</option>
+              <option value="JSON">JSON</option>
+            </select>
+          </div>
+
           <div className="rounded-lg">
             <Upload.Dragger
               multiple={false}
-              beforeUpload={() => false}
-              showUploadList={false}
-              accept=".xlsx,.xls,.csv"
+              beforeUpload={(file) => { setImportFile(file); return false; }}
+              fileList={importFile ? ([{ uid: "1", name: importFile.name }] as any) : []}
+              onRemove={() => setImportFile(null)}
+              showUploadList
+              accept=".xlsx,.xls,.csv,.json"
             >
               <p className="ant-upload-drag-icon">
                 <MdOutlineCloudUpload style={{ fontSize: 32 }} />
               </p>
               <p className="text-textheading mb-0 font-medium text-lg">Choose a file or drag & drop it here</p>
-              <p className="text-lighttext text-md">XLSX, XLS, or CSV, up to 10MB</p>
+              <p className="text-lighttext text-md">XLSX, XLS, CSV or JSON, up to 10MB</p>
               <Button className="mt-2 font-medium text-textheading">Browse File</Button>
             </Upload.Dragger>
           </div>
+
+          {importResult && (
+            <div className="mt-4 text-sm text-gray-600">
+              <strong>Last Result:</strong>{" "}
+              Inserted {importResult.inserted}, Updated {importResult.updated}, Failed {importResult.failed}
+            </div>
+          )}
         </Modal>
       </div>
     </>
