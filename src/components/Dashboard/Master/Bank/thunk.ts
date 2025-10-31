@@ -11,7 +11,14 @@ import type {
   BankCreateRequest,
   BankCreateApiResponse,
 } from "./types";
+import type { BankExportType } from "./types";
+
 const BASE_URL = import.meta.env.VITE_API_BASE ?? "https://69.62.73.62/api/v1/";
+import type {
+  BankImportApiResponse,
+  BankImportSummary,
+  BankImportType,
+} from "./types";
 
 function authHeaders(state: RootStateWithBanks) {
   const token = state.auth?.token ?? "";
@@ -137,3 +144,77 @@ export const createBankThunk = createAsyncThunk<
   }
 });
 
+export const importBanksThunk = createAsyncThunk<
+  BankImportSummary,
+  { type: BankImportType; file: File },
+  { state: RootStateWithBanks; rejectValue: string }
+>("banks/import", async ({ type, file }, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+
+    // Important: DO NOT set Content-Type here (browser sets the boundary)
+    const headers = {
+      ...authHeaders(state),
+    } as Record<string, string>;
+    delete headers["Content-Type"];
+
+    const form = new FormData();
+    form.append("file", file, file.name);
+
+    const res = await fetch(buildUrl(`banks/import/${type}`), {
+      method: "POST",
+      headers,
+      body: form,
+    });
+
+    const json = (await res.json()) as BankImportApiResponse;
+    if (!("success" in json) || !json.success) {
+      return rejectWithValue((json as any)?.message || "Import failed");
+    }
+    return json.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});
+export const exportBanksThunk = createAsyncThunk<
+  { blob: Blob; filename: string },
+  { type: BankExportType },
+  { state: RootStateWithBanks; rejectValue: string }
+>("banks/export", async ({ type }, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+
+    // build Accept header per type
+    const acceptMap: Record<BankExportType, string> = {
+      csv: "text/csv",
+      xls: "application/vnd.ms-excel",
+      json: "application/json",
+    };
+
+    const headers = {
+      ...authHeaders(state),
+      accept: acceptMap[type] ?? "application/octet-stream",
+    };
+
+    const res = await fetch(buildUrl(`banks/export/${type}`), {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      const msg = await res.text().catch(() => "");
+      return rejectWithValue(msg || `Export failed (${res.status})`);
+    }
+
+    // filename from Content-Disposition, fallback by type
+    const cd = res.headers.get("content-disposition") || "";
+    let filename = `banks.${type}`;
+    const m = /filename\*?=(?:UTF-8'')?("?)([^";]+)\1/i.exec(cd);
+    if (m?.[2]) filename = decodeURIComponent(m[2]);
+
+    const blob = await res.blob();
+    return { blob, filename };
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});

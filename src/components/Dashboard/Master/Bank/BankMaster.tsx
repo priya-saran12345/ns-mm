@@ -6,7 +6,9 @@ import {
   fetchBanksThunk,
   retrieveBankThunk,
   updateBankThunk,
-  createBankThunk, // ← NEW
+  createBankThunk,
+  importBanksThunk,
+  exportBanksThunk, // ← NEW
 } from "./thunk";
 import {
   setBanksLimit,
@@ -28,11 +30,11 @@ import {
   Form,
   Switch,
   message,
+  Select,
 } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { MdOutlineCloudUpload, MdOutlineFileDownload } from "react-icons/md";
 import { BiEdit } from "react-icons/bi";
-import * as XLSX from "xlsx";
 import BradCrumb from "../../BreadCrumb";
 
 const { Title, Text } = Typography;
@@ -51,23 +53,35 @@ const statusPill = (status: boolean) => {
 
 const BankListPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { items, loading, page, limit, total, sort_by, sort, search, retrieving, updating, creating, selected } =
-    useSelector((s: RootStateWithBanks) => s.banks);
+  const {
+    items, loading, page, limit, total, sort_by, sort, search,
+    retrieving, updating, creating, selected,
+    importing, importResult, exporting
+  } = useSelector((s: RootStateWithBanks) => s.banks);
 
   // local UI states
   const [localSearch, setLocalSearch] = useState(search ?? "");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isAddOpen, setIsAddOpen] = useState(false); // ← NEW
+  const [isAddOpen, setIsAddOpen] = useState(false);
+
+  // import modal state
+  const [importType, setImportType] = useState<"CSV" | "XLS" | "XLSX">("CSV");
+  const [importFile, setImportFile] = useState<File | null>(null);
+
+  // export state
+  const [exportType, setExportType] = useState<"csv" | "xls" | "json">("csv");
+
+  // forms
   const [editForm] = Form.useForm<Pick<Bank, "bank_name" | "ifsc_code" | "branch" | "status">>();
-  const [addForm] = Form.useForm<Pick<Bank, "bank_name" | "ifsc_code" | "branch" | "status">>(); // ← NEW
+  const [addForm]  = Form.useForm<Pick<Bank, "bank_name" | "ifsc_code" | "branch" | "status">>();
 
   // fetch list
   useEffect(() => {
     dispatch(fetchBanksThunk());
   }, [dispatch, page, limit, sort_by, sort, search]);
 
-  // when selected (for edit)
+  // set edit values
   useEffect(() => {
     if (selected && isEditOpen) {
       editForm.setFieldsValue({
@@ -144,32 +158,31 @@ const BankListPage: React.FC = () => {
     [page, limit, dispatch]
   );
 
-  // search
+  // search/pagination
   const onSearchApply = () => dispatch(setBanksSearch(localSearch.trim()));
-
-  // pagination
   const onPageChange = (newPage: number, newPageSize?: number) => {
     if (newPageSize && newPageSize !== limit) dispatch(setBanksLimit(newPageSize));
     if (newPage !== page) dispatch(setBanksPage(newPage));
   };
 
-  // export/template
-  const handleExport = () => {
-    const ws = XLSX.utils.json_to_sheet(items);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Banks");
-    XLSX.writeFile(wb, `Banks_p${page}_l${limit}.xlsx`);
-  };
-  const handleDownloadTemplate = () => {
-    const ws = XLSX.utils.json_to_sheet([], { header: ["bank_name", "ifsc_code", "branch", "status"] });
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "BankMaster");
-    XLSX.writeFile(wb, "BankMaster_Template.xlsx");
-  };
+  // server EXPORT
+  const handleServerExport = async () => {
+    try {
+      const { blob, filename } = await dispatch(
+        exportBanksThunk({ type: exportType })
+      ).unwrap();
 
-  // sort toggle
-  const toggleCreatedSort = () => {
-    dispatch(setBanksSort({ sort_by: "created_at", sort: sort === "desc" ? "asc" : "desc" }));
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || `banks.${exportType}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      message.error(typeof e === "string" ? e : "Export failed");
+    }
   };
 
   // update submit
@@ -211,9 +224,29 @@ const BankListPage: React.FC = () => {
       message.success("Bank created");
       setIsAddOpen(false);
       addForm.resetFields();
-      // optionally: dispatch(fetchBanksThunk());
     } catch (e: any) {
       if (typeof e === "string") message.error(e);
+    }
+  };
+
+  // import submit
+  const handleImport = async () => {
+    if (!importFile) {
+      message.warning("Please choose a file to import.");
+      return;
+    }
+    try {
+      const res = await dispatch(
+        importBanksThunk({ type: importType, file: importFile })
+      ).unwrap();
+      message.success(
+        `Imported: ${res.inserted} inserted, ${res.updated} updated, ${res.failed} failed`
+      );
+      setIsImportOpen(false);
+      setImportFile(null);
+      dispatch(fetchBanksThunk());
+    } catch (e: any) {
+      message.error(typeof e === "string" ? e : "Import failed");
     }
   };
 
@@ -238,17 +271,46 @@ const BankListPage: React.FC = () => {
               style={{ width: 260 }}
             />
             <Button onClick={onSearchApply}>Search</Button>
-            <Button onClick={toggleCreatedSort}>Sort by Created ({sort.toUpperCase()})</Button>
-            <Button onClick={handleDownloadTemplate}>
+            <Button onClick={() => dispatch(setBanksSort({ sort_by: "created_at", sort: sort === "desc" ? "asc" : "desc" }))}>
+              Sort by Created ({sort.toUpperCase()})
+            </Button>
+
+            {/* Download template for import */}
+            <Button onClick={() => {
+              // tiny template inline to avoid XLSX dep
+              const headers = ["bank_name,ifsc_code,branch,status\n"];
+              const blob = new Blob(headers, { type: "text/csv" });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = "BankMaster_Template.csv"; a.click();
+              window.URL.revokeObjectURL(url);
+            }}>
               <MdOutlineFileDownload style={{ fontSize: 18, marginRight: 6 }} />
               Download Format
             </Button>
-            {/* ← NEW Add button */}
-            <Button type="primary" className="bg-blue" onClick={() => setIsAddOpen(true)}>
-              Add
-            </Button>
+
+            {/* Add */}
+            <Button type="primary" className="bg-blue" onClick={() => setIsAddOpen(true)}>Add</Button>
+
+            {/* Import */}
             <Button onClick={() => setIsImportOpen(true)}>Import</Button>
-            <Button onClick={handleExport}>Export</Button>
+
+            {/* Server Export */}
+            <Space.Compact>
+              <Select
+                value={exportType}
+                style={{ width: 110 }}
+                onChange={(v: "csv" | "xls" | "json") => setExportType(v)}
+                options={[
+                  { value: "csv", label: "CSV" },
+                  { value: "xls", label: "XLS" },
+                  { value: "json", label: "JSON" },
+                ]}
+              />
+              <Button loading={exporting} onClick={handleServerExport}>
+                Export
+              </Button>
+            </Space.Compact>
           </Space>
         </div>
 
@@ -278,10 +340,7 @@ const BankListPage: React.FC = () => {
         <Modal
           title={<span className="text-lg font-semibold">Edit Bank</span>}
           open={isEditOpen}
-          onCancel={() => {
-            setIsEditOpen(false);
-            dispatch(clearSelectedBank());
-          }}
+          onCancel={() => { setIsEditOpen(false); dispatch(clearSelectedBank()); }}
           confirmLoading={updating}
           onOk={handleUpdate}
           okText="Update"
@@ -327,30 +386,53 @@ const BankListPage: React.FC = () => {
           </Form>
         </Modal>
 
-        {/* Import Modal (UI only) */}
+        {/* Import Modal */}
         <Modal
           title="Import Bank Master"
           open={isImportOpen}
-          onCancel={() => setIsImportOpen(false)}
+          onCancel={() => { setIsImportOpen(false); setImportFile(null); }}
           footer={[
             <Button key="cancel" onClick={() => setIsImportOpen(false)}>Cancel</Button>,
-            <Button key="import" type="primary" className="bg-blue">Import</Button>,
+            <Button key="import" type="primary" className="bg-blue" loading={importing} onClick={handleImport}>
+              Import
+            </Button>,
           ]}
         >
+          <div className="flex gap-3 mb-3">
+            <span className="pt-1 text-sm text-gray-600">File Type:</span>
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={importType}
+              onChange={(e) => setImportType(e.target.value as "CSV" | "XLS" | "XLSX")}
+            >
+              <option value="CSV">CSV</option>
+              <option value="XLS">XLS</option>
+              <option value="XLSX">XLSX</option>
+            </select>
+          </div>
+
           <Upload.Dragger
             className="!border-dashed !border-gray-300 rounded-lg p-6 hover:!border-blue"
             multiple={false}
-            beforeUpload={() => false}
-            showUploadList={false}
+            beforeUpload={(file) => { setImportFile(file); return false; }}
+            fileList={importFile ? ([{ uid: "1", name: importFile.name }] as any) : []}
+            onRemove={() => { setImportFile(null); }}
             accept=".xlsx,.xls,.csv"
           >
             <p className="ant-upload-drag-icon">
-              <MdOutlineCloudUpload style={{ fontSize: 32, color: "#1890ff" }} />
+              <MdOutlineCloudUpload style={{ fontSize: 32 }} />
             </p>
             <p className="text-textheading mb-0 font-medium text-lg">Choose a file or drag & drop it here</p>
             <p className="text-lighttext text-sm">Excel or CSV formats, up to 5MB</p>
             <Button className="mt-3 font-medium text-textheading">Browse File</Button>
           </Upload.Dragger>
+
+          {importResult && (
+            <div className="mt-4 text-sm text-gray-600">
+              <strong>Last Result: </strong>
+              Inserted {importResult.inserted}, Updated {importResult.updated}, Failed {importResult.failed}
+            </div>
+          )}
         </Modal>
       </div>
     </>

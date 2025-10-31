@@ -6,6 +6,8 @@ import {
   updateBankThunk,
   createBankThunk,   // ← NEW
 } from "./thunk";
+import type { BankImportSummary } from "./types";
+import { importBanksThunk, exportBanksThunk } from "./thunk";
 
 const initialState: BanksState = {
   items: [],
@@ -25,6 +27,11 @@ const initialState: BanksState = {
   updating: false,
   creating: false,   // ← NEW
   selected: null,
+  importing: false,
+  importResult: null as BankImportSummary | null,
+  exporting: false,        // ← NEW
+
+
 };
 
 const banksSlice = createSlice({
@@ -62,6 +69,20 @@ const banksSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // list
+        .addCase(importBanksThunk.pending, (state) => {
+    state.importing = true;
+    state.error = null;
+    state.importResult = null;
+  })
+  .addCase(importBanksThunk.fulfilled, (state, action) => {
+    state.importing = false;
+    state.importResult = action.payload;
+  })
+  .addCase(importBanksThunk.rejected, (state, action) => {
+    state.importing = false;
+    state.error = (action.payload as string) || "Import failed";
+  })
+
       .addCase(fetchBanksThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -125,7 +146,19 @@ const banksSlice = createSlice({
       .addCase(createBankThunk.rejected, (state, action) => {
         state.creating = false;
         state.error = (action.payload as string) || "Failed to create bank";
-      });
+      }) 
+       .addCase(exportBanksThunk.pending, (state) => {
+    state.exporting = true;
+    state.error = null;
+  })
+  .addCase(exportBanksThunk.fulfilled, (state) => {
+    state.exporting = false;
+  })
+  .addCase(exportBanksThunk.rejected, (state, action) => {
+    state.exporting = false;
+    state.error = (action.payload as string) || "Export failed";
+  });
+
   },
 });
 
