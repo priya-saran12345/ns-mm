@@ -1,5 +1,5 @@
 import React from 'react';
-import ApprovalHierarchy from '../../components/Dashboard/Master/ApprovalHierarchy';
+import ApprovalHierarchy from '../../components/Dashboard/Master/ApprovalHierarchy/ApprovalHierarchy';
 
 const DashboardPage: React.FC = () => {
   return (

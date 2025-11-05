@@ -15,7 +15,6 @@ const initialState: VillagesState = {
   search: "",
   district_code: undefined,
   tehsil_code: undefined,
-
   // NEW
   importing: false,
   importResult: null,
@@ -110,5 +109,5 @@ export const {
   setVillages,
   clearVillagesError,
 } = villagesSlice.actions;
-
 export default villagesSlice.reducer;
+ 
