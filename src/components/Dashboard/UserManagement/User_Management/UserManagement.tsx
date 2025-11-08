@@ -130,11 +130,11 @@ const UserManagement: React.FC = () => {
       title: <span className="text-lighttext font-semibold">Action</span>, key: "action", width: 300,
       render: (_: unknown, record: Row) => (
         <div className="flex items-center gap-2">
-          <Tooltip title="Permissions">
+          {/* <Tooltip title="Permissions">
             <Button size="small" className="bg-blue rounded-lg text-[18px] text-white border-0" onClick={() => navigate("/users/assign-mpp")}>
               <IoDocumentText />
             </Button>
-          </Tooltip>
+          </Tooltip> */}
           <Tooltip title="Deactivate User">
             <Button size="small" className="bg-[#05825F] text-[18px] text-white border-0"
               onClick={() => setConfirmDeactivate({ open: true, user: record })}>
@@ -146,7 +146,7 @@ const UserManagement: React.FC = () => {
               <HiMiniArrowRightEndOnRectangle />
             </Button>
           </Tooltip>
-          <Tooltip title="Copy">
+          <Tooltip title="Signature">
             <Button size="small" className="bg-[#3596F7] text-[18px] text-white border-0">
               <BsPaperclip />
             </Button>

@@ -1,5 +1,5 @@
 import React from 'react';
-import SectionAlloatment from '../../components/Dashboard/UserManagement/SectionAlloatment';
+import SectionAlloatment from '../../components/Dashboard/UserManagement/SectionAlloatment/SectionAlloatment';
 
 const DashboardPage: React.FC = () => {
   return (

@@ -10,6 +10,7 @@ import villagesSlice from '../components/Dashboard/Master/Village/slice';
 import banksSlice from '../components/Dashboard/Master/Bank/slice';
 import permissionsSlice from '../components/Dashboard/Master/Permissions/slice';
 import  approvalHierarchySlice from "../components/Dashboard/Master/ApprovalHierarchy/slice"
+import assignedPermissions  from '../components/Dashboard/UserManagement/SectionAlloatment/slice';
 // Create store
 export const store = configureStore({
   reducer: {
@@ -22,7 +23,8 @@ export const store = configureStore({
     villages:villagesSlice,
    banks:banksSlice ,
    permissions:permissionsSlice,
-   approvalHierarchy:approvalHierarchySlice
+   approvalHierarchy:approvalHierarchySlice,
+   assignedPermissions:assignedPermissions
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
