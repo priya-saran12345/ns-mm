@@ -1,10 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, Button, Form, InputNumber, Select, message } from "antd";
+import { Modal, Button, Form, InputNumber, Select, message, Tag, Spin } from "antd";
 import { useAppDispatch, useAppSelector } from "../../../../store/store";
 import { fetchRolesThunk } from "../Roles/thunk";
-import { addApprovalHierarchy } from "./thunk";
+import { addApprovalHierarchy, fetchApprovalHierarchyThunk } from "./thunk";
 
 type Props = { isOpen: boolean; onClose: () => void };
+
+type Role = {
+  id: number;
+  name: string;
+  category_id?: number;
+  status?: boolean;
+  category?: { id: number; name: string };
+};
+
+const APPROVAL_CATEGORY_ID = 3;
+const APPROVAL_CATEGORY_NAME = "Approval Users";
 
 const AddApprovalHierarchy: React.FC<Props> = ({ isOpen, onClose }) => {
   const dispatch = useAppDispatch();
@@ -12,10 +23,17 @@ const AddApprovalHierarchy: React.FC<Props> = ({ isOpen, onClose }) => {
   const [levelCount, setLevelCount] = useState<number>(1);
   const [submitting, setSubmitting] = useState(false);
 
-  // Roles slice mirrors your Roles list page shape
-  const { items: roles = [], loading: rolesLoading } = useAppSelector((s) => s.roles ?? {});
+  // Roles slice shape assumed: { items, loading }
+  const { items: allRoles = [], loading: rolesLoading } = useAppSelector((s) => s.roles ?? {});
 
-  // Dev StrictMode double-run guard
+  // Filter only "Approval Users" roles and active ones
+  const approvalRoles: Role[] = (allRoles as Role[]).filter((r) => {
+    const isApprovalById = r.category_id === APPROVAL_CATEGORY_ID;
+    const isApprovalByName = r.category?.name === APPROVAL_CATEGORY_NAME;
+    return (isApprovalById || isApprovalByName) && (r.status ?? true);
+  });
+
+  // StrictMode double-run guard
   const didFetch = useRef(false);
 
   useEffect(() => {
@@ -24,14 +42,13 @@ const AddApprovalHierarchy: React.FC<Props> = ({ isOpen, onClose }) => {
       return;
     }
     if (didFetch.current) return;
-    if (rolesLoading) return;
-    if (roles.length > 0) return;
 
     didFetch.current = true;
+    // If your API supports category filters, pass them here; otherwise we filter client-side.
     dispatch(fetchRolesThunk({ path: "roles", page: 1, limit: 100, search: "" }))
       .unwrap()
       .catch(() => {});
-  }, [isOpen, roles.length, rolesLoading, dispatch]);
+  }, [isOpen, dispatch]);
 
   const handleLevelCountChange = (value: number | null) => {
     setLevelCount(value ?? 1);
@@ -47,8 +64,17 @@ const AddApprovalHierarchy: React.FC<Props> = ({ isOpen, onClose }) => {
     setSubmitting(true);
     try {
       const values = await form.validateFields();
+
+      // Final duplicate check (defense-in-depth)
+      const chosen: number[] = Array.from({ length: levelCount }, (_, i) => values[`role${i + 1}`]).filter(Boolean);
+      const uniq = new Set(chosen);
+      if (uniq.size !== chosen.length) {
+        message.error("Each level must have a unique role (duplicates found).");
+        setSubmitting(false);
+        return;
+      }
+
       const body = {
-        // API expects `level` (count) + `levels` array. No `name`.
         level: levelCount,
         levels: Array.from({ length: levelCount }, (_, i) => ({
           level: i + 1,
@@ -57,6 +83,7 @@ const AddApprovalHierarchy: React.FC<Props> = ({ isOpen, onClose }) => {
       };
 
       await dispatch(addApprovalHierarchy(body)).unwrap();
+          await dispatch(fetchApprovalHierarchyThunk({ page: 1, limit: 20, search: "" })).unwrap();
 
       message.success("Approval hierarchy added successfully!");
       form.resetFields();
@@ -75,18 +102,12 @@ const AddApprovalHierarchy: React.FC<Props> = ({ isOpen, onClose }) => {
       open={isOpen}
       onCancel={onClose}
       destroyOnClose
-      autoFocusButton={null} // prevent Enter from "auto-clicking" primary
+      autoFocusButton={null}
       footer={[
         <Button key="cancel" onClick={onClose} htmlType="button">
           Cancel
         </Button>,
-        <Button
-          key="add"
-          type="primary"
-          htmlType="button"
-          onClick={handleSubmit}
-          loading={submitting}
-        >
+        <Button key="add" type="primary" htmlType="button" onClick={handleSubmit} loading={submitting}>
           Add Hierarchy
         </Button>,
       ]}
@@ -106,22 +127,53 @@ const AddApprovalHierarchy: React.FC<Props> = ({ isOpen, onClose }) => {
         {Array.from({ length: levelCount }).map((_, idx) => (
           <Form.Item
             key={idx}
-            label={`Select Role for Level ${idx + 1}`}
-            name={`role${idx + 1}`}
-            rules={[{ required: true, message: `Please select a role for level ${idx + 1}` }]}
+            shouldUpdate // rerender when form values change (for disabling options)
+            noStyle
           >
-            <Select
-              placeholder={`Select Role for Level ${idx + 1}`}
-              showSearch
-              optionFilterProp="children"
-              loading={rolesLoading}
-            >
-              {roles.map((r: any) => (
-                <Select.Option key={r.id} value={r.id}>
-                  {r.name}
-                </Select.Option>
-              ))}
-            </Select>
+            {() => {
+              // Build the set of selected role IDs to disable duplicates
+              const vals = form.getFieldsValue();
+              const selectedIds = new Set<number>(
+                Object.keys(vals)
+                  .filter((k) => k.startsWith("role"))
+                  .map((k) => vals[k])
+                  .filter(Boolean)
+              );
+              const currentFieldName = `role${idx + 1}`;
+              const currentValue = vals[currentFieldName];
+
+              return (
+                <Form.Item
+                  label={
+                    <span>
+                      Select Role for Level {idx + 1}{" "}
+                      <Tag color="blue" style={{ marginLeft: 8 }}>
+                        {APPROVAL_CATEGORY_NAME}
+                      </Tag>
+                    </span>
+                  }
+                  name={currentFieldName}
+                  rules={[{ required: true, message: `Please select a role for level ${idx + 1}` }]}
+                >
+                  <Select
+                    placeholder={`Select Role for Level ${idx + 1}`}
+                    showSearch
+                    optionFilterProp="children"
+                    loading={rolesLoading}
+                    notFoundContent={rolesLoading ? <Spin size="small" /> : "No roles"}
+                  >
+                    {approvalRoles.map((r) => {
+                      const disabled = selectedIds.has(r.id) && currentValue !== r.id;
+                      return (
+                        <Select.Option key={r.id} value={r.id} disabled={disabled}>
+                          {r.name}
+                        </Select.Option>
+                      );
+                    })}
+                  </Select>
+                </Form.Item>
+              );
+            }}
           </Form.Item>
         ))}
       </Form>
