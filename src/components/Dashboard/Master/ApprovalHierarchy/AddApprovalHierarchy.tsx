@@ -147,9 +147,9 @@ const AddApprovalHierarchy: React.FC<Props> = ({ isOpen, onClose }) => {
                   label={
                     <span>
                       Select Role for Level {idx + 1}{" "}
-                      <Tag color="blue" style={{ marginLeft: 8 }}>
+                      {/* <Tag color="blue" style={{ marginLeft: 8 }}>
                         {APPROVAL_CATEGORY_NAME}
-                      </Tag>
+                      </Tag> */}
                     </span>
                   }
                   name={currentFieldName}
