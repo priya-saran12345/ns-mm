@@ -8,13 +8,13 @@ import {
   updateBankThunk,
   createBankThunk,
   importBanksThunk,
-  exportBanksThunk, // ← NEW
+  exportBanksThunk,
 } from "./thunk";
 import {
   setBanksLimit,
   setBanksPage,
   setBanksSearch,
-  setBanksSort,
+  // setBanksSort, // ⛔️ removed (no "Sort by Created" anymore)
   clearSelectedBank,
 } from "./slice";
 
@@ -30,7 +30,6 @@ import {
   Form,
   Switch,
   message,
-  Select,
 } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { MdOutlineCloudUpload, MdOutlineFileDownload } from "react-icons/md";
@@ -54,9 +53,9 @@ const statusPill = (status: boolean) => {
 const BankListPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const {
-    items, loading, page, limit, total, sort_by, sort, search,
+    items, loading, page, limit, total, /* sort_by, sort, */ search,
     retrieving, updating, creating, selected,
-    importing, importResult, exporting
+    importing, importResult, exporting,
   } = useSelector((s: RootStateWithBanks) => s.banks);
 
   // local UI states
@@ -65,12 +64,8 @@ const BankListPage: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  // import modal state
-  const [importType, setImportType] = useState<"CSV" | "XLS" | "XLSX">("CSV");
+  // import modal state (XLS only)
   const [importFile, setImportFile] = useState<File | null>(null);
-
-  // export state
-  const [exportType, setExportType] = useState<"csv" | "xls" | "json">("csv");
 
   // forms
   const [editForm] = Form.useForm<Pick<Bank, "bank_name" | "ifsc_code" | "branch" | "status">>();
@@ -79,7 +74,15 @@ const BankListPage: React.FC = () => {
   // fetch list
   useEffect(() => {
     dispatch(fetchBanksThunk());
-  }, [dispatch, page, limit, sort_by, sort, search]);
+  }, [dispatch, page, limit, /* sort_by, sort, */ search]);
+
+  // debounced "search on type"
+  useEffect(() => {
+    const t = setTimeout(() => {
+      dispatch(setBanksSearch(localSearch.trim()));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [localSearch, dispatch]);
 
   // set edit values
   useEffect(() => {
@@ -158,30 +161,86 @@ const BankListPage: React.FC = () => {
     [page, limit, dispatch]
   );
 
-  // search/pagination
-  const onSearchApply = () => dispatch(setBanksSearch(localSearch.trim()));
+  // client-side matcher for name/ifsc/branch (optional extra filter on top of server)
+  const filteredItems = useMemo(() => {
+    const q = localSearch.trim().toLowerCase();
+    if (!q) return items;
+    const hit = (r: Bank) =>
+      [r.bank_name, r.ifsc_code, r.branch]
+        .filter(Boolean)
+        .map(String)
+        .map((x) => x.toLowerCase())
+        .some((v) => v.includes(q));
+    return items.filter(hit);
+  }, [items, localSearch]);
+
+  // pagination
   const onPageChange = (newPage: number, newPageSize?: number) => {
     if (newPageSize && newPageSize !== limit) dispatch(setBanksLimit(newPageSize));
     if (newPage !== page) dispatch(setBanksPage(newPage));
   };
 
-  // server EXPORT
-  const handleServerExport = async () => {
+  // Download .xls template (simple HTML table -> Excel)
+  const handleDownloadTemplateXls = () => {
+    const html =
+      `<table>
+        <tr><th>bank_name</th><th>ifsc_code</th><th>branch</th><th>status</th></tr>
+        <tr><td>HDFC Bank</td><td>HDFC0001234</td><td>Dwarka Sec-23</td><td>true</td></tr>
+      </table>`;
+    const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "BankMaster_Template.xls"; a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // server EXPORT (XLS only)
+  const handleServerExportXls = async () => {
     try {
       const { blob, filename } = await dispatch(
-        exportBanksThunk({ type: exportType })
+        exportBanksThunk({
+          type: "xls",
+          // Optionally pass filters to backend if supported:
+          // search,
+          // page, limit,
+        })
       ).unwrap();
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = filename || `banks.${exportType}`;
+      a.download = filename || "BankMaster_Export.xls";
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (e: any) {
       message.error(typeof e === "string" ? e : "Export failed");
+    }
+  };
+
+  // import submit (XLS only)
+  const handleImport = async () => {
+    if (!importFile) {
+      message.warning("Please choose a .xls file to import.");
+      return;
+    }
+    if (!importFile.name.toLowerCase().endsWith(".xls")) {
+      message.error("Only .xls files are allowed.");
+      return;
+    }
+    try {
+      const res = await dispatch(
+        importBanksThunk({ type: "xls", file: importFile })
+      ).unwrap();
+      message.success(
+        `Imported: ${res.inserted} inserted, ${res.updated} updated, ${res.failed} failed`
+      );
+      setIsImportOpen(false);
+      setImportFile(null);
+      dispatch(fetchBanksThunk());
+    } catch (e: any) {
+      message.error(typeof e === "string" ? e : "Import failed");
     }
   };
 
@@ -229,96 +288,51 @@ const BankListPage: React.FC = () => {
     }
   };
 
-  // import submit
-  const handleImport = async () => {
-    if (!importFile) {
-      message.warning("Please choose a file to import.");
-      return;
-    }
-    try {
-      const res = await dispatch(
-        importBanksThunk({ type: importType, file: importFile })
-      ).unwrap();
-      message.success(
-        `Imported: ${res.inserted} inserted, ${res.updated} updated, ${res.failed} failed`
-      );
-      setIsImportOpen(false);
-      setImportFile(null);
-      dispatch(fetchBanksThunk());
-    } catch (e: any) {
-      message.error(typeof e === "string" ? e : "Import failed");
-    }
-  };
-
   return (
     <>
       <BradCrumb />
       <div className="p-4 bg-white rounded-lg shadow">
         {/* Header */}
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center ">
           <div>
             <Title level={4} className="!mb-0">Bank Master</Title>
             <p className="text-sm text-gray-500">Manage bank records (IFSC, Branch, status).</p>
           </div>
           <Space wrap>
-            <Input
-              allowClear
-              placeholder="Search bank / IFSC / branch"
-              prefix={<SearchOutlined />}
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
-              onPressEnter={onSearchApply}
-              style={{ width: 260 }}
-            />
-            <Button onClick={onSearchApply}>Search</Button>
-            <Button onClick={() => dispatch(setBanksSort({ sort_by: "created_at", sort: sort === "desc" ? "asc" : "desc" }))}>
-              Sort by Created ({sort.toUpperCase()})
-            </Button>
-
-            {/* Download template for import */}
-            <Button onClick={() => {
-              // tiny template inline to avoid XLSX dep
-              const headers = ["bank_name,ifsc_code,branch,status\n"];
-              const blob = new Blob(headers, { type: "text/csv" });
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url; a.download = "BankMaster_Template.csv"; a.click();
-              window.URL.revokeObjectURL(url);
-            }}>
+            {/* Search on type */}
+            {/* Download .xls template */}
+            <Button onClick={handleDownloadTemplateXls}>
               <MdOutlineFileDownload style={{ fontSize: 18, marginRight: 6 }} />
-              Download Format
+              Download Format 
             </Button>
 
             {/* Add */}
             <Button type="primary" className="bg-blue" onClick={() => setIsAddOpen(true)}>Add</Button>
 
-            {/* Import */}
-            <Button onClick={() => setIsImportOpen(true)}>Import</Button>
+            {/* Import (XLS only) */}
+            <Button onClick={() => setIsImportOpen(true)}>Import </Button>
 
-            {/* Server Export */}
-            <Space.Compact>
-              <Select
-                value={exportType}
-                style={{ width: 110 }}
-                onChange={(v: "csv" | "xls" | "json") => setExportType(v)}
-                options={[
-                  { value: "csv", label: "CSV" },
-                  { value: "xls", label: "XLS" },
-                  { value: "json", label: "JSON" },
-                ]}
-              />
-              <Button loading={exporting} onClick={handleServerExport}>
-                Export
-              </Button>
-            </Space.Compact>
+            {/* Export (XLS only via API) */}
+            <Button type="primary" loading={exporting} onClick={handleServerExportXls}>
+              Export 
+            </Button>
           </Space>
         </div>
+        <div className="flex justify-end mb-4">            <Input
+              allowClear
+              placeholder="Type to search (name / IFSC / branch)…"
+              prefix={<SearchOutlined />}
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              style={{ width: 260 }}
+            />
 
+</div>
         {/* Table */}
         <Table<Bank>
           bordered
           rowKey={(r) => r.id}
-          dataSource={items}
+          dataSource={filteredItems}
           columns={columns as any}
           loading={loading}
           pagination={false}
@@ -386,9 +400,9 @@ const BankListPage: React.FC = () => {
           </Form>
         </Modal>
 
-        {/* Import Modal */}
+        {/* Import Modal (XLS only) */}
         <Modal
-          title="Import Bank Master"
+          title="Import Bank Master (.xls)"
           open={isImportOpen}
           onCancel={() => { setIsImportOpen(false); setImportFile(null); }}
           footer={[
@@ -398,32 +412,20 @@ const BankListPage: React.FC = () => {
             </Button>,
           ]}
         >
-          <div className="flex gap-3 mb-3">
-            <span className="pt-1 text-sm text-gray-600">File Type:</span>
-            <select
-              className="border rounded px-2 py-1 text-sm"
-              value={importType}
-              onChange={(e) => setImportType(e.target.value as "CSV" | "XLS" | "XLSX")}
-            >
-              <option value="CSV">CSV</option>
-              <option value="XLS">XLS</option>
-              <option value="XLSX">XLSX</option>
-            </select>
-          </div>
-
+          {/* ⛔️ Removed file type dropdown and non-xls accepts */}
           <Upload.Dragger
-            className="!border-dashed !border-gray-300 rounded-lg p-6 hover:!border-blue"
+            className=" !border-gray-300 rounded-lg p-6 hover:!border-blue"
             multiple={false}
             beforeUpload={(file) => { setImportFile(file); return false; }}
             fileList={importFile ? ([{ uid: "1", name: importFile.name }] as any) : []}
             onRemove={() => { setImportFile(null); }}
-            accept=".xlsx,.xls,.csv"
+            accept=".xls"
           >
             <p className="ant-upload-drag-icon">
               <MdOutlineCloudUpload style={{ fontSize: 32 }} />
             </p>
-            <p className="text-textheading mb-0 font-medium text-lg">Choose a file or drag & drop it here</p>
-            <p className="text-lighttext text-sm">Excel or CSV formats, up to 5MB</p>
+            <p className="text-textheading mb-0 font-medium text-lg">Choose a .xls file or drag & drop it here</p>
+            <p className="text-lighttext text-sm">Excel 97-2003 Workbook (.xls), up to 5MB</p>
             <Button className="mt-3 font-medium text-textheading">Browse File</Button>
           </Upload.Dragger>
 

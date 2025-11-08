@@ -8,7 +8,6 @@
     created_at?: string;
     updated_at?: string;
   }
-
   // API pagination (as returned by your banks endpoint)
   export interface BanksApiPagination {
     currentPage: number;
@@ -126,7 +125,7 @@
     | { success: false; message: string };
 
 // ===== Import API types =====
-export type BankImportType = "CSV" | "XLS" | "XLSX" | "JSON";
+export type BankImportType = "CSV" | "xls" | "XLSX" | "JSON";
 
 export interface BankImportSummary {
   inserted: number;

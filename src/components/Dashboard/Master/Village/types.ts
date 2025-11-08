@@ -3,7 +3,7 @@
 
 
 
-export type MasterDataImportType = "CSV" | "XLS" | "XLSX" | "JSON";
+export type MasterDataImportType = "CSV" | "xls" | "XLSX" | "JSON";
 export type MasterDataExportType = "csv" | "xls" | "json";
 
 export interface MasterDataImportSummary {
