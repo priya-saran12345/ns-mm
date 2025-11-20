@@ -1,12 +1,19 @@
-// SectionAllocationDummy.tsx
+// src/modules/UserManagement/SectionAllocation/SectionAllocationDummy.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Table, Input, Button, Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
-import { useDispatch } from "react-redux";
-import { useParams } from "react-router-dom";          // 👈 NEW
+import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
 import type { AppDispatch } from "../../../../store/store";
+
 import { fetchAssignedPermissionByIdThunk } from "./thunk";
 import { AiFillDelete, AiOutlineEye } from "react-icons/ai";
+
+// 🔹 MCC / MPP thunks from Category slice
+import {
+  fetchMccListThunk,
+  fetchMppListThunk,
+} from "../../Master/Category/thunk";
 
 const { Option } = Select;
 
@@ -21,27 +28,58 @@ const PAGE_SIZE = 5;
 
 const SectionAllocationDummy: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-
-  // 👇 get id from URL: /users/section-alloatment/:id
   const { id } = useParams<{ id: string }>();
   const userId = id ?? null;
 
+  // -------- Local state --------
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingPermission, setLoadingPermission] = useState(false);
 
-  /* ========== FETCH SINGLE USER'S PERMISSION BY ID ========== */
+  const [selectedMccFilter, setSelectedMccFilter] = useState<string | undefined>();
+  const [selectedMppFilter, setSelectedMppFilter] = useState<string | undefined>();
+
+  // -------- Category slice (MCC / MPP) --------
+  const categoryState = useSelector((s: any) => s.category);
+  const {
+    mccItems = [],
+    loadingMcc = false,
+    mppItems = [],
+    loadingMpp = false,
+  } = categoryState ?? {};
+
+  // ▸ Fetch MCC list once on mount
+  useEffect(() => {
+    dispatch(fetchMccListThunk({ page: 1, limit: 100 }) as any);
+  }, [dispatch]);
+
+  // ▸ When user selects an MCC, fetch MPP list for that MCC
+  useEffect(() => {
+    if (!selectedMccFilter) return; // nothing selected → don't call API
+
+    dispatch(
+      fetchMppListThunk({
+        page: 1,
+        limit: 100,
+        mcc_code: selectedMccFilter,
+      }) as any
+    );
+  }, [selectedMccFilter, dispatch]);
+
+  // -------- Fetch single user's permission by ID --------
   useEffect(() => {
     if (!userId) {
       setRows([]);
       return;
     }
 
-    setLoading(true);
+    setLoadingPermission(true);
 
-    dispatch(fetchAssignedPermissionByIdThunk(userId))
+    dispatch(fetchAssignedPermissionByIdThunk(userId as any))
       .unwrap()
-      .then((perm) => {
+      .then((res: any) => {
+        // API: { success, data: [ { ...perm } ], ... }
+        const perm = Array.isArray(res?.data) ? res.data[0] : res?.data || res;
         if (!perm) {
           setRows([]);
           return;
@@ -62,8 +100,9 @@ const SectionAllocationDummy: React.FC = () => {
           ? perm.mpp_codes
           : [];
 
+        // One row per MCC; all MPP codes joined
         const mappedRows: Row[] = mccCodes.length
-          ? mccCodes.map((mcc, idx) => ({
+          ? mccCodes.map((mcc: string, idx: number) => ({
               id: idx + 1,
               userName: fullName,
               mcc,
@@ -83,7 +122,7 @@ const SectionAllocationDummy: React.FC = () => {
       .catch(() => {
         setRows([]);
       })
-      .finally(() => setLoading(false));
+      .finally(() => setLoadingPermission(false));
   }, [userId, dispatch]);
 
   const total = rows.length;
@@ -93,6 +132,15 @@ const SectionAllocationDummy: React.FC = () => {
     const end = start + PAGE_SIZE;
     return rows.slice(start, end).map((r) => ({ key: r.id, ...r }));
   }, [page, rows]);
+
+  // (Optional) if backend already filters by MCC, mppItems is already correct.
+  // Keeping filtered list anyway in case backend returns all.
+  const filteredMppItems = useMemo(() => {
+    if (!selectedMccFilter) return [];
+    return (mppItems || []).filter(
+      (m: any) => m.mcc_code === selectedMccFilter
+    );
+  }, [mppItems, selectedMccFilter]);
 
   const columns = [
     {
@@ -197,24 +245,45 @@ const SectionAllocationDummy: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter row (dummy UI) */}
+      {/* Filter row (MCC / MPP / Assigned / Assign button) */}
       <div className="flex flex-wrap gap-3 justify-end mb-3">
+        {/* MCC dropdown */}
         <Select
           placeholder="Select MCC"
           style={{ minWidth: 180 }}
           allowClear
-          disabled
+          value={selectedMccFilter}
+          loading={loadingMcc}
+          onChange={(val) => {
+            setSelectedMccFilter(val);
+            setSelectedMppFilter(undefined);
+          }}
         >
-          <Option value="mcc1">Satar kataliya(005)a</Option>
+          {(mccItems || []).map((m: any) => (
+            <Option key={m.mcc_code} value={m.mcc_code}>
+              {m.mcc_name} ({m.mcc_code})
+            </Option>
+          ))}
         </Select>
+
+        {/* MPP dropdown – loaded based on selected MCC */}
         <Select
           placeholder="Select MPP"
           style={{ minWidth: 180 }}
           allowClear
-          disabled
+          value={selectedMppFilter}
+          loading={loadingMpp}
+          disabled={!selectedMccFilter}
+          onChange={(val) => setSelectedMppFilter(val)}
         >
-          <Option value="001103">001103</Option>
+          {(filteredMppItems || []).map((m: any) => (
+            <Option key={m.mpp_code} value={m.mpp_code}>
+              {m.mpp_code} - {m.mpp_name}
+            </Option>
+          ))}
         </Select>
+
+        {/* Assigned (static) */}
         <Select
           placeholder="Assigned"
           style={{ minWidth: 140 }}
@@ -223,16 +292,16 @@ const SectionAllocationDummy: React.FC = () => {
         >
           <Option value="yes">Assigned</Option>
         </Select>
-                  <Button type="primary" className="bg-blue">
-            Assign
-          </Button>
 
+        <Button type="primary" className="bg-blue-500">
+          Assign
+        </Button>
       </div>
 
       {/* Table */}
       <Table
         bordered={false}
-        loading={loading}
+        loading={loadingPermission}
         columns={columns as any}
         dataSource={dataSource}
         pagination={{

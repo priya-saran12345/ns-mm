@@ -6,6 +6,11 @@ import type {
   CategoriesListApiResponse,
   FetchCategoriesParams,
   Category,
+  FetchMccMppParams,
+  MccItem,
+  MppItem,
+  MccListApiResponse,
+  MppListApiResponse,
 } from "./types";
 
 /** ---------- Config ---------- */
@@ -40,8 +45,6 @@ function buildUrl(
 }
 
 function normalizePagination(p: any): CategoriesPagination {
-  // Your API already returns { total, page, limit, totalPages }
-  // but keep this guard for future-proofing.
   return {
     total: Number(p?.total ?? 0),
     page: Number(p?.page ?? 1),
@@ -58,7 +61,7 @@ export const fetchCategoriesThunk = createAsyncThunk<
 >("categories/fetchList", async (args, { getState, rejectWithValue }) => {
   try {
     const state = getState();
-    const path = args.path || "/api/v1/categories";
+    const path = args.path || "categories";
     const url = buildUrl(path, {
       page: args.page ?? 1,
       limit: args.limit ?? 10,
@@ -73,6 +76,71 @@ export const fetchCategoriesThunk = createAsyncThunk<
     }
 
     const items = json.data?.categories ?? [];
+    const pagination = normalizePagination(json.data?.pagination);
+    return { items, pagination };
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});
+
+/** ---------- LIST: GET /master-data/mcc-list?page&limit ---------- */
+export const fetchMccListThunk = createAsyncThunk<
+  { items: MccItem[]; pagination: CategoriesPagination },
+  FetchMccMppParams | void,
+  { state: RootStateWithCategories; rejectValue: string }
+>("categories/fetchMccList", async (args, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const page = args?.page ?? 1;
+    const limit = args?.limit ?? 10;
+
+    const url = buildUrl("master-data/mcc-list", { page, limit });
+
+    const res = await fetch(url, { headers: authHeaders(state) });
+    const json = (await res.json()) as MccListApiResponse;
+
+    if (!("success" in json) || !json.success) {
+      return rejectWithValue((json as any)?.message || "Failed to fetch MCC list");
+    }
+
+    const items = json.data?.mccs ?? [];
+    const pagination = normalizePagination(json.data?.pagination);
+    return { items, pagination };
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});
+
+/** ---------- LIST: GET /master-data/mpp-list?page&limit ---------- */
+// thunks.ts
+export const fetchMppListThunk = createAsyncThunk<
+  { items: MppItem[]; pagination: CategoriesPagination },
+  FetchMccMppParams | void,
+  { state: RootStateWithCategories; rejectValue: string }
+>("categories/fetchMppList", async (args, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const page = args?.page ?? 1;
+    const limit = args?.limit ?? 10;
+    const mcc_code = args?.mcc_code;             // 👈 dynamic
+
+    // ✅ DO NOT put query in the path; pass it via the `query` object
+    const url = buildUrl("master-data/mpp-list", {
+      page,
+      limit,
+      mcc_code,                                   // 👈 this becomes &mcc_code=XXX
+    });
+
+    const res = await fetch(url, { headers: authHeaders(state) });
+    const json = (await res.json()) as MppListApiResponse;
+
+    if (!("success" in json) || !json.success) {
+      return rejectWithValue(
+        (json as any)?.message || "Failed to fetch MPP list"
+      );
+    }
+
+    const items = json.data?.mpps ?? [];
     const pagination = normalizePagination(json.data?.pagination);
     return { items, pagination };
   } catch (err: any) {
