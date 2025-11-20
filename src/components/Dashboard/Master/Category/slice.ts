@@ -9,7 +9,9 @@ import {
   fetchCategoriesThunk,
   fetchMccListThunk,
   fetchMppListThunk,
+  fetchFormStepsThunk,
 } from "./thunk";
+
 const defaultPagination: CategoriesPagination = {
   total: 0,
   page: 1,
@@ -40,9 +42,16 @@ const initialState: CategoriesState = {
   loadingMpp: false,
   errorMpp: null,
   mppPagination: { ...defaultPagination },
+
+  /** Form Steps */
+  formStepItems: [],
+  loadingFormSteps: false,
+  errorFormSteps: null,
+  formStepsPagination: { ...defaultPagination },
 };
+
 const categoriesSlice = createSlice({
-  name: "categories",
+  name: "category",
   initialState,
   reducers: {
     setCategoriesPage(state, action: PayloadAction<number>) {
@@ -116,6 +125,24 @@ const categoriesSlice = createSlice({
         state.loadingMpp = false;
         state.errorMpp =
           (action.payload as string) || "Failed to fetch MPP list";
+      });
+
+    /** ===== FORM STEPS LIST ===== */
+    builder
+      .addCase(fetchFormStepsThunk.pending, (state) => {
+        state.loadingFormSteps = true;
+        state.errorFormSteps = null;
+      })
+      .addCase(fetchFormStepsThunk.fulfilled, (state, action) => {
+        state.loadingFormSteps = false;
+        console.log('the form step is ',action.payload)
+        state.formStepItems = action.payload.items;
+        state.formStepsPagination = action.payload.pagination;
+      })
+      .addCase(fetchFormStepsThunk.rejected, (state, action) => {
+        state.loadingFormSteps = false;
+        state.errorFormSteps =
+          (action.payload as string) || "Failed to fetch form steps";
       });
   },
 });

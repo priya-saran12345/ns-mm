@@ -1,4 +1,4 @@
-// src/modules/UserManagement/SectionAllocation/SectionAllocationDummy.tsx
+// SectionAllocationDummy.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Table, Input, Button, Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
@@ -9,10 +9,10 @@ import type { AppDispatch } from "../../../../store/store";
 import { fetchAssignedPermissionByIdThunk } from "./thunk";
 import { AiFillDelete, AiOutlineEye } from "react-icons/ai";
 
-// 🔹 MCC / MPP thunks from Category slice
 import {
   fetchMccListThunk,
   fetchMppListThunk,
+  fetchFormStepsThunk,
 } from "../../Master/Category/thunk";
 
 const { Option } = Select;
@@ -31,42 +31,53 @@ const SectionAllocationDummy: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const userId = id ?? null;
 
-  // -------- Local state --------
+  // table state
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [loadingPermission, setLoadingPermission] = useState(false);
 
+  // filters / dropdown selections
   const [selectedMccFilter, setSelectedMccFilter] = useState<string | undefined>();
-  const [selectedMppFilter, setSelectedMppFilter] = useState<string | undefined>();
+  const [selectedMppFilter, setSelectedMppFilter] = useState<string[] | undefined>([]);
+  const [selectedFormSteps, setSelectedFormSteps] = useState<number[] | undefined>([]);
 
-  // -------- Category slice (MCC / MPP) --------
+  // remote search text
+  const [mccSearch, setMccSearch] = useState("");
+  const [mppSearch, setMppSearch] = useState("");
+
+  // category slice
   const categoryState = useSelector((s: any) => s.category);
   const {
     mccItems = [],
     loadingMcc = false,
     mppItems = [],
     loadingMpp = false,
+    formStepItems =[],
+    loadingFormSteps = false,
   } = categoryState ?? {};
 
-  // ▸ Fetch MCC list once on mount
+  /* ----- Load MCC + Form Steps on mount ----- */
   useEffect(() => {
-    dispatch(fetchMccListThunk({ page: 1, limit: 100 }) as any);
+    dispatch(fetchMccListThunk({ page: 1, limit: 100, search: "" }) as any);
+    dispatch(fetchFormStepsThunk() as any);
   }, [dispatch]);
 
-  // ▸ When user selects an MCC, fetch MPP list for that MCC
+  /* ----- When MCC changes, load MPP for that MCC ----- */
   useEffect(() => {
-    if (!selectedMccFilter) return; // nothing selected → don't call API
-
+    if (!selectedMccFilter) {
+      return;
+    }
     dispatch(
       fetchMppListThunk({
         page: 1,
         limit: 100,
         mcc_code: selectedMccFilter,
+        search: mppSearch,
       }) as any
     );
-  }, [selectedMccFilter, dispatch]);
+  }, [selectedMccFilter, mppSearch, dispatch]);
 
-  // -------- Fetch single user's permission by ID --------
+  /* ----- Fetch single user's permissions ----- */
   useEffect(() => {
     if (!userId) {
       setRows([]);
@@ -78,7 +89,6 @@ const SectionAllocationDummy: React.FC = () => {
     dispatch(fetchAssignedPermissionByIdThunk(userId as any))
       .unwrap()
       .then((res: any) => {
-        // API: { success, data: [ { ...perm } ], ... }
         const perm = Array.isArray(res?.data) ? res.data[0] : res?.data || res;
         if (!perm) {
           setRows([]);
@@ -100,7 +110,6 @@ const SectionAllocationDummy: React.FC = () => {
           ? perm.mpp_codes
           : [];
 
-        // One row per MCC; all MPP codes joined
         const mappedRows: Row[] = mccCodes.length
           ? mccCodes.map((mcc: string, idx: number) => ({
               id: idx + 1,
@@ -133,8 +142,8 @@ const SectionAllocationDummy: React.FC = () => {
     return rows.slice(start, end).map((r) => ({ key: r.id, ...r }));
   }, [page, rows]);
 
-  // (Optional) if backend already filters by MCC, mppItems is already correct.
-  // Keeping filtered list anyway in case backend returns all.
+  // MPP list already filtered by API using mcc_code + search;
+  // no extra filtering needed, but keep guard for safety
   const filteredMppItems = useMemo(() => {
     if (!selectedMccFilter) return [];
     return (mppItems || []).filter(
@@ -158,15 +167,12 @@ const SectionAllocationDummy: React.FC = () => {
       width: 120,
       render: () => (
         <div className="flex items-center gap-3">
-          {/* DELETE — RED CIRCLE */}
           <button
             type="button"
             className="w-8 h-8 rounded-full bg-red border-none flex items-center justify-center text-white hover:opacity-90 transition"
           >
             <AiFillDelete size={16} />
           </button>
-
-          {/* VIEW/EDIT — BLUE CIRCLE */}
           <button
             type="button"
             className="w-8 h-8 rounded-full bg-blue border-none flex items-center justify-center text-white hover:opacity-90 transition"
@@ -245,18 +251,27 @@ const SectionAllocationDummy: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter row (MCC / MPP / Assigned / Assign button) */}
+      {/* Filter row */}
       <div className="flex flex-wrap gap-3 justify-end mb-3">
-        {/* MCC dropdown */}
+        {/* MCC (searchable) */}
         <Select
           placeholder="Select MCC"
           style={{ minWidth: 180 }}
           allowClear
+          showSearch
           value={selectedMccFilter}
           loading={loadingMcc}
+          filterOption={false} // remote search
+          onSearch={(value) => {
+            setMccSearch(value);
+            dispatch(
+              fetchMccListThunk({ page: 1, limit: 100, search: value }) as any
+            );
+          }}
           onChange={(val) => {
             setSelectedMccFilter(val);
-            setSelectedMppFilter(undefined);
+            setSelectedMppFilter([]);
+            setMppSearch("");
           }}
         >
           {(mccItems || []).map((m: any) => (
@@ -266,31 +281,54 @@ const SectionAllocationDummy: React.FC = () => {
           ))}
         </Select>
 
-        {/* MPP dropdown – loaded based on selected MCC */}
+        {/* MPP (multi-select, searchable, depends on MCC) */}
         <Select
+          mode="multiple"
           placeholder="Select MPP"
-          style={{ minWidth: 180 }}
+          style={{ minWidth: 220 }}
           allowClear
           value={selectedMppFilter}
           loading={loadingMpp}
           disabled={!selectedMccFilter}
+          showSearch
+          filterOption={false}
+          onSearch={(value) => {
+            setMppSearch(value);
+            if (selectedMccFilter) {
+              dispatch(
+                fetchMppListThunk({
+                  page: 1,
+                  limit: 100,
+                  mcc_code: selectedMccFilter,
+                  search: value,
+                }) as any
+              );
+            }
+          }}
           onChange={(val) => setSelectedMppFilter(val)}
         >
-          {(filteredMppItems || []).map((m: any) => (
+          {filteredMppItems.map((m: any) => (
             <Option key={m.mpp_code} value={m.mpp_code}>
               {m.mpp_code} - {m.mpp_name}
             </Option>
           ))}
         </Select>
 
-        {/* Assigned (static) */}
+        {/* Assigned Sections (Form Steps, multi-select) */}
         <Select
-          placeholder="Assigned"
-          style={{ minWidth: 140 }}
+          mode="multiple"
+          placeholder="Assign Sections"
+          style={{ minWidth: 240 }}
           allowClear
-          disabled
+          value={selectedFormSteps}
+          loading={loadingFormSteps}
+          onChange={(val) => setSelectedFormSteps(val)}
         >
-          <Option value="yes">Assigned</Option>
+          {(formStepItems || []).map((fs: any) => (
+            <Option key={fs.id} value={fs.id}>
+              {fs.name}
+            </Option>
+          ))}
         </Select>
 
         <Button type="primary" className="bg-blue-500">

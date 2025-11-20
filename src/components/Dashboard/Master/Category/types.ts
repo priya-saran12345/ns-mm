@@ -22,6 +22,16 @@ export interface MppItem {
   mcc_name: string;
 }
 
+/** ====== Form Steps API entities ====== */
+export interface FormStepItem {
+  id: number;
+  name: string;
+  priority: number;
+  status: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 /** ====== Normalized pagination for our store ====== */
 export interface CategoriesPagination {
   total: number;
@@ -80,26 +90,50 @@ export interface MppListApiError {
 }
 export type MppListApiResponse = MppListApiSuccess | MppListApiError;
 
+/** ====== API response shapes – Form Steps ====== */
+/** Your screenshot shows:
+ * {
+ *   success: true,
+ *   message: "...",
+ *   data: [ { id, name, priority, ... }, ... ]
+ * }
+ * so `data` is a simple array, not `{ form_steps, pagination }`.
+ */
+export interface FormStepsListApiSuccess {
+  success: true;
+  message: string;
+  data: FormStepItem[]; // 👈 plain array
+  requestId?: string;
+}
+export interface FormStepsListApiError {
+  success: false;
+  message: string;
+}
+export type FormStepsListApiResponse =
+  | FormStepsListApiSuccess
+  | FormStepsListApiError;
+
 /** ====== Thunk params ====== */
 export interface FetchCategoriesParams {
-  path: string; // "/api/v1/categories"
+  path: string; // "categories"
   page?: number;
   limit?: number;
   search?: string;
   method?: "GET";
 }
 
-// for MCC / MPP – simple page & limit
+// for MCC / MPP – page, limit, search, mcc_code (for MPP)
 export interface FetchMccMppParams {
   page?: number;
   limit?: number;
-  mcc_code?:string;
+  search?: string;
+  mcc_code?: string; // used only for MPP API
 }
 
 /** ====== Root/State contracts ====== */
 export interface RootStateWithCategories {
   auth: { token: string | null };
-  categories: CategoriesState;
+  category: CategoriesState; // 👈 Slice key is "category"
 }
 
 export interface CategoriesState {
@@ -125,4 +159,10 @@ export interface CategoriesState {
   loadingMpp: boolean;
   errorMpp: string | null;
   mppPagination: CategoriesPagination;
+
+  /** Form Steps list */
+  formStepItems: FormStepItem[];
+  loadingFormSteps: boolean;
+  errorFormSteps: string | null;
+  formStepsPagination: CategoriesPagination;
 }

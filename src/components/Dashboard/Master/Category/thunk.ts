@@ -1,4 +1,4 @@
-// src/modules/UserManagement/Categories/state/thunks.ts
+// src/modules/UserManagement/Categories/state/thunk.ts
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type {
   RootStateWithCategories,
@@ -11,6 +11,8 @@ import type {
   MppItem,
   MccListApiResponse,
   MppListApiResponse,
+  FormStepItem,
+  FormStepsListApiResponse,
 } from "./types";
 
 /** ---------- Config ---------- */
@@ -29,7 +31,7 @@ function authHeaders(state: RootStateWithCategories) {
 
 function buildUrl(
   path: string,
-  query?: Record<string, string | number | undefined>
+  query?: Record<string, string | number | undefined | null>
 ) {
   const qs = new URLSearchParams();
   if (query) {
@@ -72,7 +74,9 @@ export const fetchCategoriesThunk = createAsyncThunk<
     const json = (await res.json()) as CategoriesListApiResponse;
 
     if (!("success" in json) || !json.success) {
-      return rejectWithValue((json as any)?.message || "Failed to fetch categories");
+      return rejectWithValue(
+        (json as any)?.message || "Failed to fetch categories"
+      );
     }
 
     const items = json.data?.categories ?? [];
@@ -83,7 +87,7 @@ export const fetchCategoriesThunk = createAsyncThunk<
   }
 });
 
-/** ---------- LIST: GET /master-data/mcc-list?page&limit ---------- */
+/** ---------- LIST: GET /master-data/mcc-list?page&limit&search ---------- */
 export const fetchMccListThunk = createAsyncThunk<
   { items: MccItem[]; pagination: CategoriesPagination },
   FetchMccMppParams | void,
@@ -93,14 +97,17 @@ export const fetchMccListThunk = createAsyncThunk<
     const state = getState();
     const page = args?.page ?? 1;
     const limit = args?.limit ?? 10;
+    const search = args?.search ?? "";
 
-    const url = buildUrl("master-data/mcc-list", { page, limit });
+    const url = buildUrl("master-data/mcc-list", { page, limit, search });
 
     const res = await fetch(url, { headers: authHeaders(state) });
     const json = (await res.json()) as MccListApiResponse;
 
     if (!("success" in json) || !json.success) {
-      return rejectWithValue((json as any)?.message || "Failed to fetch MCC list");
+      return rejectWithValue(
+        (json as any)?.message || "Failed to fetch MCC list"
+      );
     }
 
     const items = json.data?.mccs ?? [];
@@ -111,24 +118,24 @@ export const fetchMccListThunk = createAsyncThunk<
   }
 });
 
-/** ---------- LIST: GET /master-data/mpp-list?page&limit ---------- */
-// thunks.ts
+/** ---------- LIST: GET /master-data/mpp-list?mcc_code=&search=&page&limit ---------- */
 export const fetchMppListThunk = createAsyncThunk<
   { items: MppItem[]; pagination: CategoriesPagination },
-  FetchMccMppParams | void,
+  FetchMccMppParams,
   { state: RootStateWithCategories; rejectValue: string }
 >("categories/fetchMppList", async (args, { getState, rejectWithValue }) => {
   try {
     const state = getState();
     const page = args?.page ?? 1;
     const limit = args?.limit ?? 10;
-    const mcc_code = args?.mcc_code;             // 👈 dynamic
+    const search = args?.search ?? "";
+    const mcc_code = args?.mcc_code ?? "";
 
-    // ✅ DO NOT put query in the path; pass it via the `query` object
     const url = buildUrl("master-data/mpp-list", {
+      mcc_code,
+      search,
       page,
       limit,
-      mcc_code,                                   // 👈 this becomes &mcc_code=XXX
     });
 
     const res = await fetch(url, { headers: authHeaders(state) });
@@ -143,6 +150,40 @@ export const fetchMppListThunk = createAsyncThunk<
     const items = json.data?.mpps ?? [];
     const pagination = normalizePagination(json.data?.pagination);
     return { items, pagination };
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});
+
+/** ---------- LIST: GET /form-steps?status=true ---------- */
+export const fetchFormStepsThunk = createAsyncThunk<
+  { items: FormStepItem[]; pagination: CategoriesPagination },
+  void,
+  { state: RootStateWithCategories; rejectValue: string }
+>("categories/fetchFormSteps", async (_args, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const url = buildUrl("form-steps", { status: "true", page: 1, limit: 100 });
+
+    const res = await fetch(url, { headers: authHeaders(state) });
+    const json = (await res.json()) as FormStepsListApiResponse;
+
+    if (!("success" in json) || !json.success) {
+      return rejectWithValue(
+        (json as any)?.message || "Failed to fetch form steps"
+      );
+    }
+
+    const items = json.data ?? [];
+    // No pagination in API → just return defaults
+    const pagination: CategoriesPagination = {
+      total: items.length,
+      page: 1,
+      limit: items.length || 10,
+      totalPages: 1,
+    };
+        return { items, pagination };
+
   } catch (err: any) {
     return rejectWithValue(err?.message ?? "Network error");
   }
