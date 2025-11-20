@@ -1,3 +1,4 @@
+// thunk.ts
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type {
   RootStateWithAP,
@@ -7,7 +8,6 @@ import type {
 
 const BASE_URL = import.meta.env.VITE_API_BASE ?? "https://69.62.73.62/api/v1/";
 
-/** Attach Auth Token */
 function authHeaders(state: RootStateWithAP) {
   const token = state.auth?.token ?? "";
   return {
@@ -17,11 +17,9 @@ function authHeaders(state: RootStateWithAP) {
   };
 }
 
-/* ============================================================
-    FETCH SINGLE USER PERMISSION ( /assigned-permissions/:id )
-   ============================================================ */
+/* ============ SINGLE USER PERMISSION ============ */
 export const fetchAssignedPermissionByIdThunk = createAsyncThunk<
-  AssignedPermission,
+  AssignedPermission | null,
   number | string,
   { state: RootStateWithAP; rejectValue: string }
 >("assignedPermissions/fetchById", async (id, { getState, rejectWithValue }) => {
@@ -35,21 +33,22 @@ export const fetchAssignedPermissionByIdThunk = createAsyncThunk<
       return rejectWithValue(`HTTP ${res.status}`);
     }
 
-    const json = await res.json();
+    const json = (await res.json()) as AssignedPermissionsResponse;
 
     if (!json.success) {
       return rejectWithValue(json.message || "Failed to fetch permission by ID");
     }
 
-    return json.data;
+    // 👇 API returns data: [ { ...permission } ]
+    const first = Array.isArray(json.data) ? json.data[0] : (json.data as any);
+
+    return (first ?? null) as AssignedPermission | null;
   } catch (err: any) {
     return rejectWithValue(err?.message ?? "Network error");
   }
 });
 
-/* ============================================================
-    FETCH ALL ASSIGNED PERMISSIONS (list)
-   ============================================================ */
+/* ============ LIST ALL PERMISSIONS (unchanged) ============ */
 export const fetchAssignedPermissionsThunk = createAsyncThunk<
   AssignedPermission[],
   void,

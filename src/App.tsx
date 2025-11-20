@@ -37,6 +37,7 @@ import PendingMem from "./pages/Member/PendingMem";
 import Re_submitted from "./pages/Member/Re-submitted";
 import USers from "./pages/UserManagement/UserManagement";
 import SectionAlloatment from "./pages/UserManagement/SectionAlloatment";
+import SectionAlloatmentDetail from "./components/Dashboard/UserManagement/SectionAlloatment/AssignSectionModal";
 import Asignmpp from "./components/Dashboard/UserManagement/AssignMpp";
 import USerDetail from "./pages/UserManagement/Userdetail";
 
@@ -91,6 +92,10 @@ const AppContent: React.FC = () => {
     { path: "/users/re-submitted", element: <Re_submitted /> },
     { path: "/users", element: <USers /> },
     { path: "/users/section-alloatment", element: <SectionAlloatment /> },
+{
+  path: "/users/section-alloatment/:id",  // dynamic route
+  element: <SectionAlloatmentDetail />,
+},
     { path: "/users/assign-mpp", element: <Asignmpp /> },
     { path: "/users/detail/:id", element: <USerDetail /> },
   ];

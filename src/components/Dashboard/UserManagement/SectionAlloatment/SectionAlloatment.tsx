@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "../../../../store/store"; // adjust to your app
 import { Table, Input, Button } from "antd";
 import { SearchOutlined, FilterOutlined } from "@ant-design/icons";
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
-import AssignSectionModal from "./AssignSectionModal";
 import RoleFilterDropdown from "./RoleFilterDropdown";
 
 import {
@@ -21,16 +21,13 @@ import Breadcrumbs from "../../BreadCrumb";
 
 export default function SectionAllocation() {
   const dispatch = useDispatch<AppDispatch>();
+const navigate = useNavigate();
 
   const { rows, total, from, to } = useSelector(selectPagedRows as any);
   const { search, page, limit, loading } = useSelector(
     (s: RootStateWithAP) => s.assignedPermissions
   );
   
-  const [selectedUserId, setSelectedUserId] = useState<number | string | null>(
-  null
-);
-  const [openAssign, setOpenAssign] = React.useState(false);
   const [roles, setRoles] = React.useState<string[]>(["LegalOfficer"]);
 
   useEffect(() => {
@@ -52,15 +49,14 @@ export default function SectionAllocation() {
   render: (_: any, record: any) => (
     <button
       className="px-4 py-1 rounded-full bg-[#246BFD] text-white text-sm font-medium"
-      onClick={() => {
-        const uid =
-          record.user?.id ||      // preferred (from nested user object)
-          record.user_id ||       // fallback
-          record.id;              // extreme fallback
+onClick={() => {
+  const uid =
+    record.user?.id ||    // preferred (nested user)
+    record.user_id ||     // fallback
+    record.id;            // extreme fallback
 
-        setSelectedUserId(uid);
-        setOpenAssign(true);
-      }}
+  navigate(`/users/section-alloatment/${uid}`);
+}}
     >
       Assign
     </button>
@@ -195,13 +191,15 @@ export default function SectionAllocation() {
         </div>
       </div>
 
-      <AssignSectionModal
+      {/* <AssignSectionModal
         open={openAssign}
         onClose={() => setOpenAssign(false)}
         defaultRoleValues={roles}
         selectedUserId={selectedUserId}
 
-      />
+      /> */}
+      {/* <SectionAllocationDummy userId={selectedUserId} /> */}
+
     </>
   );
 }
