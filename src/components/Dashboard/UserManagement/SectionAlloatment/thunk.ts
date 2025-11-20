@@ -75,3 +75,50 @@ export const fetchAssignedPermissionsThunk = createAsyncThunk<
     return rejectWithValue(err?.message ?? "Network error");
   }
 });
+export const upsertAssignedPermissionThunk = createAsyncThunk<
+  AssignedPermission,
+  {
+    userId: number | string;
+    mccCode?: string | null;
+    mppCodes?: string[];
+    formStepIds?: number[];
+  },
+  { state: RootStateWithAP; rejectValue: string }
+>("assignedPermissions/upsert", async (args, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const url = `${BASE_URL}assigned-permissions`;
+
+    const body = {
+      user_id: Number(args.userId),
+      mcc_codes: args.mccCode ? [args.mccCode] : [],
+      mpp_codes: args.mppCodes ?? [],
+      formsteps_ids: args.formStepIds ?? [],
+    };
+
+    const res = await fetch(url, {
+      method: "POST", // or PUT if your API expects it
+      headers: authHeaders(state),
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      return rejectWithValue(`HTTP ${res.status}`);
+    }
+
+    // API may return array or single object; handle both
+    const json = (await res.json()) as any;
+
+    if (!json.success) {
+      return rejectWithValue(json.message || "Failed to save permissions");
+    }
+
+    const created: AssignedPermission = Array.isArray(json.data)
+      ? json.data[0]
+      : json.data;
+
+    return created;
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});

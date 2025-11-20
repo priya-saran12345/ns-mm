@@ -5,7 +5,7 @@ import type {
   RootStateWithAP,
   AssignedPermission,
 } from "./types";
-import { fetchAssignedPermissionsThunk } from "./thunk";
+import { fetchAssignedPermissionsThunk, upsertAssignedPermissionThunk } from "./thunk";
 const initialState: AssignedPermissionsState = {
   items: [],
   loading: false,
@@ -44,7 +44,26 @@ const slice = createSlice({
       state.loading = false;
       state.error = (payload as string) || "Failed to fetch permissions";
     });
-  },
+  
+      b.addCase(upsertAssignedPermissionThunk.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    b.addCase(upsertAssignedPermissionThunk.fulfilled, (state, { payload }) => {
+      state.loading = false;
+      const idx = state.items.findIndex((it) => it.id === payload.id);
+      if (idx >= 0) {
+        state.items[idx] = payload;
+      } else {
+        state.items.push(payload);
+      }
+    });
+    b.addCase(upsertAssignedPermissionThunk.rejected, (state, { payload }) => {
+      state.loading = false;
+      state.error = (payload as string) || "Failed to save permissions";
+    });
+  }
+
 });
 export const { setSearch, setPage, setLimit } = slice.actions;
 export default slice.reducer;
