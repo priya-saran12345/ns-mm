@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "../../../../store/store"; // adjust to your app
 import { Table, Input, Button } from "antd";
@@ -26,7 +26,10 @@ export default function SectionAllocation() {
   const { search, page, limit, loading } = useSelector(
     (s: RootStateWithAP) => s.assignedPermissions
   );
-
+  
+  const [selectedUserId, setSelectedUserId] = useState<number | string | null>(
+  null
+);
   const [openAssign, setOpenAssign] = React.useState(false);
   const [roles, setRoles] = React.useState<string[]>(["LegalOfficer"]);
 
@@ -42,6 +45,28 @@ export default function SectionAllocation() {
       width: 80,
       render: (v: number) => <span className="text-textheading font-medium">{v}</span>,
     },
+{
+  title: <span className="text-lighttext font-semibold">Assign</span>,
+  key: "assign",
+  width: 110,
+  render: (_: any, record: any) => (
+    <button
+      className="px-4 py-1 rounded-full bg-[#246BFD] text-white text-sm font-medium"
+      onClick={() => {
+        const uid =
+          record.user?.id ||      // preferred (from nested user object)
+          record.user_id ||       // fallback
+          record.id;              // extreme fallback
+
+        setSelectedUserId(uid);
+        setOpenAssign(true);
+      }}
+    >
+      Assign
+    </button>
+  ),
+},
+
     {
       title: <span className="text-lighttext font-semibold">Name</span>,
       dataIndex: "name",
@@ -52,6 +77,18 @@ export default function SectionAllocation() {
       title: <span className="text-lighttext font-semibold">Email</span>,
       dataIndex: "email",
       key: "email",
+      render: (text: string) => <span className="text-textheading font-medium">{text}</span>,
+    },
+    {
+      title: <span className="text-lighttext font-semibold">Role Category</span>,
+      dataIndex: "role_category",
+      key: "role_category",
+      render: (text: string) => <span className="text-textheading font-medium">{text}</span>,
+    },
+    {
+      title: <span className="text-lighttext font-semibold">Role</span>,
+      dataIndex: "role",
+      key: "role",
       render: (text: string) => <span className="text-textheading font-medium">{text}</span>,
     },
     {
@@ -68,12 +105,12 @@ export default function SectionAllocation() {
       width: 220,
       render: (text: string) => <span className="text-textheading font-medium">{text}</span>,
     },
-    {
-      title: <span className="text-lighttext font-semibold">Assigned MPP</span>,
-      dataIndex: "assignedMpp",
-      key: "assignedMpp",
-      width: 220,
-    },
+    // {
+    //   title: <span className="text-lighttext font-semibold">Assigned MPP</span>,
+    //   dataIndex: "assignedMpp",
+    //   key: "assignedMpp",
+    //   width: 220,
+    // },
   ];
 
   // Pretty prev/next buttons
@@ -90,22 +127,18 @@ export default function SectionAllocation() {
     }
     return original;
   };
-
   return (
     <>
       <Breadcrumbs />
       <div className="p-4 bg-white rounded-lg shadow">
         {/* Header */}
+        <div className="flex justify-between">
+
         <div className="mb-4">
-          <div className="text-sm text-gray-500">
-            Dashboard — User Management — Section Allocation
-          </div>
           <h2 className="text-lg font-semibold mt-1">Section Allocation</h2>
           <p className="text-sm text-gray-500">Assigned MCC/Sections per user</p>
         </div>
-
-        {/* Action bar */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-3 mb-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-3 mb-4">
           <Input
             placeholder="Type to search"
             prefix={<SearchOutlined />}
@@ -115,9 +148,9 @@ export default function SectionAllocation() {
             allowClear
           />
 
-          <Button type="primary" className="bg-blue" onClick={() => setOpenAssign(true)}>
+          {/* <Button type="primary" className="bg-blue" onClick={() => setOpenAssign(true)}>
             Assign
-          </Button>
+          </Button> */}
 
           <RoleFilterDropdown
             options={[
@@ -133,6 +166,10 @@ export default function SectionAllocation() {
             Filter
           </Button>
         </div>
+
+        </div>
+
+        {/* Action bar */}
 
         {/* Table */}
         <Table
@@ -162,6 +199,8 @@ export default function SectionAllocation() {
         open={openAssign}
         onClose={() => setOpenAssign(false)}
         defaultRoleValues={roles}
+        selectedUserId={selectedUserId}
+
       />
     </>
   );

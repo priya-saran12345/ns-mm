@@ -6,7 +6,6 @@ import type {
   AssignedPermission,
 } from "./types";
 import { fetchAssignedPermissionsThunk } from "./thunk";
-
 const initialState: AssignedPermissionsState = {
   items: [],
   loading: false,
@@ -16,7 +15,6 @@ const initialState: AssignedPermissionsState = {
   page: 1,
   limit: 10,
 };
-
 const slice = createSlice({
   name: "assignedPermissions",
   initialState,
@@ -48,13 +46,10 @@ const slice = createSlice({
     });
   },
 });
-
 export const { setSearch, setPage, setLimit } = slice.actions;
 export default slice.reducer;
-
 // ------------------ Selectors ------------------
 const selectSelf = (s: RootStateWithAP) => s.assignedPermissions;
-
 function fullName(u: AssignedPermission["user"]) {
   const fn = (u.first_name || "").trim();
   const ln = (u.last_name || "").trim();
@@ -63,7 +58,6 @@ function fullName(u: AssignedPermission["user"]) {
   // fallback to email local-part
   return u.email?.split("@")[0] || "User";
 }
-
 export const selectFilteredRows = createSelector(
   [selectSelf],
   (state): APTableRow[] => {
@@ -90,7 +84,6 @@ export const selectFilteredRows = createSelector(
     );
   }
 );
-
 export const selectPagedRows = createSelector(
   [selectSelf, selectFilteredRows],
   (state, filtered): { rows: APTableRow[]; total: number; from: number; to: number } => {

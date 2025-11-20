@@ -1,11 +1,12 @@
+// AssignSectionModal.tsx
 import React, { useMemo, useState, useEffect } from "react";
 import { Modal, Form, Select, Row, Col, Button } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../../../../store/store";
 
-/** === Thunks: adjust import paths if needed === */
 import { fetchRolesThunk } from "../../Master/Roles/thunk";
-import { fetchUsersThunk } from "../User_Management/thunks"; // 👈 your users list thunk
+import { fetchUsersThunk } from "../User_Management/thunks";
+import { fetchAssignedPermissionByIdThunk } from "./thunk";
 
 type Option = { label: string; value: string | number };
 
@@ -18,6 +19,8 @@ type Props = {
   mccOptions?: Option[];
   getMppOptions?: (mccValue: string) => Option[];
 
+  selectedUserId?: number | string | null;
+
   onSubmit?: (payload: {
     role: string | number;
     user_id: number | string;
@@ -27,7 +30,7 @@ type Props = {
   }) => void;
 };
 
-/** --------- fallbacks only for sections/MCC/MPP --------- */
+/* ---------- FALLBACK OPTIONS ---------- */
 const FALLBACK_SECTIONS: Option[] = [
   { label: "1. Member Details", value: 1 },
   { label: "2. Address And Contact Details", value: 2 },
@@ -55,6 +58,7 @@ const FALLBACK_MPP_BY_MCC: Record<string, Option[]> = {
     { label: "009009", value: "009009" },
   ],
 };
+/* -------------------------------------- */
 
 export default function AssignSectionModal({
   open,
@@ -63,36 +67,35 @@ export default function AssignSectionModal({
   sectionOptions,
   mccOptions,
   getMppOptions,
+  selectedUserId,
   onSubmit,
 }: Props) {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
   const [selectedMcc, setSelectedMcc] = useState<string>("");
 
-  /** ----- ROLES from Redux (assumes reducer key: roles) ----- */
   const rolesState = useSelector((s: RootState) => s.roles);
-  const { items: roles = [], loading: rolesLoading } = rolesState ?? { items: [], loading: false };
+  const { items: roles = [], loading: rolesLoading } =
+    rolesState ?? { items: [], loading: false };
 
-  /** ----- USERS from Redux (assumes reducer key: users) ----- */
   const usersState = useSelector((s: RootState) => s.users);
-  const {
-    items: users ,
-    loading: usersLoading,
-  } = usersState ?? { items: [], loading: false };
+  const { items: users, loading: usersLoading } =
+    usersState ?? { items: [], loading: false };
 
-  /** Fetch roles + users when modal opens */
+  /* 1. Fetch roles + users when modal opens */
   useEffect(() => {
     if (!open) return;
+
     if ((!roles || roles.length === 0) && !rolesLoading) {
       dispatch(fetchRolesThunk({ path: "roles", page: 1, limit: 100 }) as any);
     }
     if ((!users || users.length === 0) && !usersLoading) {
-      // change "user" to your actual path if different
-      dispatch(fetchUsersThunk({ path: "user", page: 1, limit: 100, search: "" }) as any);
+      dispatch(
+        fetchUsersThunk({ path: "user", page: 1, limit: 100, search: "" }) as any
+      );
     }
   }, [open, roles, rolesLoading, users, usersLoading, dispatch]);
 
-  /** Map roles to options */
   const roleOptionsFromStore: Option[] = useMemo(
     () =>
       (roles || []).map((r: any) => ({
@@ -102,19 +105,18 @@ export default function AssignSectionModal({
     [roles]
   );
 
-  /** Map users to options (name + email). Adjust to your user shape. */
   const userOptionsFromStore: Option[] = useMemo(
     () =>
       (users || []).map((u: any) => {
         const name =
-          [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "User";
-        // const email = u.email ? ` (${u.email})` : "";
+          [u.first_name, u.last_name].filter(Boolean).join(" ") ||
+          u.username ||
+          "User";
         return { label: `${name}`, value: u.id };
       }),
     [users]
   );
 
-  /** Use provided lists/fallbacks for remaining selects */
   const sectionOpts = sectionOptions ?? FALLBACK_SECTIONS;
   const mccOpts = mccOptions ?? FALLBACK_MCC;
 
@@ -124,26 +126,72 @@ export default function AssignSectionModal({
     return FALLBACK_MPP_BY_MCC[selectedMcc] ?? [];
   }, [selectedMcc, getMppOptions]);
 
-  /** Prefill Role from defaultRoleValues */
+  /* 2. Prefill Role + User for new + edit */
   useEffect(() => {
-    if (open) {
-      const def = defaultRoleValues?.[0];
-      let prefill: string | number | undefined = undefined;
-      if (def && roleOptionsFromStore.length) {
-        const byValue = roleOptionsFromStore.find(
-          (o) => String(o.value).toLowerCase() === String(def).toLowerCase()
-        );
-        const byLabel = roleOptionsFromStore.find(
-          (o) => String(o.label).toLowerCase() === String(def).toLowerCase()
-        );
-        prefill = (byValue ?? byLabel)?.value;
-      }
-      form.setFieldsValue({ role: prefill });
-    } else {
+    if (!open) {
       form.resetFields();
       setSelectedMcc("");
+      return;
     }
-  }, [open, defaultRoleValues, roleOptionsFromStore, form]);
+
+    const baseValues: any = {};
+
+    // default Role from props
+    const def = defaultRoleValues?.[0];
+    if (def && roleOptionsFromStore.length) {
+      const byValue = roleOptionsFromStore.find(
+        (o) => String(o.value).toLowerCase() === String(def).toLowerCase()
+      );
+      const byLabel = roleOptionsFromStore.find(
+        (o) => String(o.label).toLowerCase() === String(def).toLowerCase()
+      );
+      baseValues.role = (byValue ?? byLabel)?.value;
+    }
+
+    // User from selected row (for new assignment)
+    if (selectedUserId) {
+      baseValues.user = selectedUserId;
+    }
+
+    form.setFieldsValue(baseValues);
+  }, [open, defaultRoleValues, roleOptionsFromStore, selectedUserId, form]);
+
+  /* 3. When editing existing user assignment -> load details from API and patch form */
+  useEffect(() => {
+    if (!open || !selectedUserId) return;
+
+    (async () => {
+      try {
+        const result = await (dispatch(
+          fetchAssignedPermissionByIdThunk(selectedUserId) as any
+        )).unwrap();
+
+        // result should be AssignedPermission from your API:
+        // { user_id, formsteps_ids, mcc_codes, mpp_codes, ... }
+
+        const patch: any = {};
+
+        if (result?.user_id) {
+          patch.user = result.user_id;
+        }
+        if (Array.isArray(result?.formsteps_ids)) {
+          patch.sections = result.formsteps_ids;
+        }
+        if (Array.isArray(result?.mcc_codes) && result.mcc_codes.length > 0) {
+          const mcc = result.mcc_codes[0];
+          patch.mcc = mcc;
+          setSelectedMcc(mcc);
+        }
+        if (Array.isArray(result?.mpp_codes) && result.mpp_codes.length > 0) {
+          patch.mpp = result.mpp_codes[0];
+        }
+
+        form.setFieldsValue(patch);
+      } catch (e) {
+        // ignore — API error will be handled by thunk/slice if needed
+      }
+    })();
+  }, [open, selectedUserId, dispatch, form]);
 
   const handleOk = async () => {
     try {
@@ -157,7 +205,7 @@ export default function AssignSectionModal({
       });
       onClose();
     } catch {
-      /* validation errors */
+      // validation errors
     }
   };
 
@@ -216,7 +264,7 @@ export default function AssignSectionModal({
               rules={[{ required: true, message: "Please select a user" }]}
             >
               <Select
-                placeholder={usersLoading ? "Loading users..." : "Select Users"}
+                placeholder={usersLoading ? "Loading users..." : "Select User"}
                 options={userOptionsFromStore}
                 loading={usersLoading}
                 showSearch
@@ -244,21 +292,21 @@ export default function AssignSectionModal({
             </Form.Item>
           </Col>
 
-        <Col span={12}>
+          <Col span={12}>
             <Form.Item
               name="mcc"
               label={label("BMC/MCC")}
               rules={[{ required: true, message: "Please select BMC/MCC" }]}
             >
               <Select
-                placeholder="BMC/MCC"
+                placeholder="Select BMC/MCC"
                 options={mccOpts}
+                showSearch
+                optionFilterProp="label"
                 onChange={(v) => {
                   setSelectedMcc(String(v));
                   form.setFieldsValue({ mpp: undefined });
                 }}
-                showSearch
-                optionFilterProp="label"
               />
             </Form.Item>
           </Col>

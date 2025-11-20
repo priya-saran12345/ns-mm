@@ -7,6 +7,7 @@ import type {
 
 const BASE_URL = import.meta.env.VITE_API_BASE ?? "https://69.62.73.62/api/v1/";
 
+/** Attach Auth Token */
 function authHeaders(state: RootStateWithAP) {
   const token = state.auth?.token ?? "";
   return {
@@ -16,6 +17,39 @@ function authHeaders(state: RootStateWithAP) {
   };
 }
 
+/* ============================================================
+    FETCH SINGLE USER PERMISSION ( /assigned-permissions/:id )
+   ============================================================ */
+export const fetchAssignedPermissionByIdThunk = createAsyncThunk<
+  AssignedPermission,
+  number | string,
+  { state: RootStateWithAP; rejectValue: string }
+>("assignedPermissions/fetchById", async (id, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const url = `${BASE_URL}assigned-permissions?userId=${id}`;
+
+    const res = await fetch(url, { headers: authHeaders(state) });
+
+    if (!res.ok) {
+      return rejectWithValue(`HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+
+    if (!json.success) {
+      return rejectWithValue(json.message || "Failed to fetch permission by ID");
+    }
+
+    return json.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message ?? "Network error");
+  }
+});
+
+/* ============================================================
+    FETCH ALL ASSIGNED PERMISSIONS (list)
+   ============================================================ */
 export const fetchAssignedPermissionsThunk = createAsyncThunk<
   AssignedPermission[],
   void,
@@ -24,6 +58,7 @@ export const fetchAssignedPermissionsThunk = createAsyncThunk<
   try {
     const state = getState();
     const url = `${BASE_URL}assigned-permissions`;
+
     const res = await fetch(url, { headers: authHeaders(state) });
 
     if (!res.ok) {
@@ -31,9 +66,11 @@ export const fetchAssignedPermissionsThunk = createAsyncThunk<
     }
 
     const json = (await res.json()) as AssignedPermissionsResponse;
-    if (!("success" in json) || !json.success) {
-      return rejectWithValue(json?.message || "Failed to fetch permissions");
+
+    if (!json.success) {
+      return rejectWithValue(json.message || "Failed to fetch permissions");
     }
+
     return json.data || [];
   } catch (err: any) {
     return rejectWithValue(err?.message ?? "Network error");

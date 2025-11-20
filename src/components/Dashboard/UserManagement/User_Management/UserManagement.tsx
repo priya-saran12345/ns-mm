@@ -67,8 +67,7 @@ const UserManagement: React.FC = () => {
     const roleName: string = u?.userRole?.name ?? u?.role ?? "";
     return {
       id: u.id,
-      name: (u.first_name || u.last_name) ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() :
-       "---",
+      name: (u.first_name || u.last_name) ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() : u.name ?? u.email,
       username: u.username ?? u.email,
       password: "********",
       role: roleName,
