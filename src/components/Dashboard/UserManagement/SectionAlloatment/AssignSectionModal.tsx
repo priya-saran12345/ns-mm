@@ -1,12 +1,15 @@
 // SectionAllocationDummy.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Table, Input, Button, Select } from "antd";
+import { Table, Input, Button, Select, message } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import type { AppDispatch } from "../../../../store/store";
 
-import { fetchAssignedPermissionByIdThunk } from "./thunk";
+import {
+  fetchAssignedPermissionByIdThunk,
+  upsertAssignedPermissionThunk,
+} from "./thunk";
 import { AiFillDelete, AiOutlineEye } from "react-icons/ai";
 
 import {
@@ -38,8 +41,12 @@ const SectionAllocationDummy: React.FC = () => {
 
   // filters / dropdown selections
   const [selectedMccFilter, setSelectedMccFilter] = useState<string | undefined>();
-  const [selectedMppFilter, setSelectedMppFilter] = useState<string[] | undefined>([]);
-  const [selectedFormSteps, setSelectedFormSteps] = useState<number[] | undefined>([]);
+  const [selectedMppFilter, setSelectedMppFilter] = useState<string[] | undefined>(
+    []
+  );
+  const [selectedFormSteps, setSelectedFormSteps] = useState<number[] | undefined>(
+    []
+  );
 
   // remote search text
   const [mccSearch, setMccSearch] = useState("");
@@ -52,7 +59,7 @@ const SectionAllocationDummy: React.FC = () => {
     loadingMcc = false,
     mppItems = [],
     loadingMpp = false,
-    formStepItems =[],
+    formStepItems = [],
     loadingFormSteps = false,
   } = categoryState ?? {};
 
@@ -77,7 +84,7 @@ const SectionAllocationDummy: React.FC = () => {
     );
   }, [selectedMccFilter, mppSearch, dispatch]);
 
-  /* ----- Fetch single user's permissions ----- */
+  /* ----- Fetch single user's permissions (view mode) ----- */
   useEffect(() => {
     if (!userId) {
       setRows([]);
@@ -88,8 +95,7 @@ const SectionAllocationDummy: React.FC = () => {
 
     dispatch(fetchAssignedPermissionByIdThunk(userId as any))
       .unwrap()
-      .then((res: any) => {
-        const perm = Array.isArray(res?.data) ? res.data[0] : res?.data || res;
+      .then((perm) => {
         if (!perm) {
           setRows([]);
           return;
@@ -109,6 +115,13 @@ const SectionAllocationDummy: React.FC = () => {
         const mppCodes: string[] = Array.isArray(perm.mpp_codes)
           ? perm.mpp_codes
           : [];
+
+        // Prefill the selection dropdowns from existing permission
+        if (mccCodes.length) {
+          setSelectedMccFilter(mccCodes[0]);
+        }
+        setSelectedMppFilter(mppCodes);
+        setSelectedFormSteps(perm.formsteps_ids || []);
 
         const mappedRows: Row[] = mccCodes.length
           ? mccCodes.map((mcc: string, idx: number) => ({
@@ -143,13 +156,82 @@ const SectionAllocationDummy: React.FC = () => {
   }, [page, rows]);
 
   // MPP list already filtered by API using mcc_code + search;
-  // no extra filtering needed, but keep guard for safety
   const filteredMppItems = useMemo(() => {
     if (!selectedMccFilter) return [];
-    return (mppItems || []).filter(
-      (m: any) => m.mcc_code === selectedMccFilter
-    );
+    return (mppItems || []).filter((m: any) => m.mcc_code === selectedMccFilter);
   }, [mppItems, selectedMccFilter]);
+
+  /* ----- Assign click handler ----- */
+  const handleAssign = () => {
+    if (!userId) {
+      message.error("User ID is missing.");
+      return;
+    }
+    if (!selectedMccFilter) {
+      message.error("Please select an MCC.");
+      return;
+    }
+    if (!selectedMppFilter || selectedMppFilter.length === 0) {
+      message.error("Please select at least one MPP.");
+      return;
+    }
+    if (!selectedFormSteps || selectedFormSteps.length === 0) {
+      message.error("Please select at least one section.");
+      return;
+    }
+
+    dispatch(
+      upsertAssignedPermissionThunk({
+        userId,
+        // mccCode: selectedMccFilter,
+        mppCodes: selectedMppFilter,
+        formStepIds: selectedFormSteps,
+      }) as any
+    )
+      .unwrap()
+      .then((perm) => {
+        message.success("Permissions assigned successfully.");
+
+        const user = perm.user || {};
+        const fn = (user.first_name || "").trim();
+        const ln = (user.last_name || "").trim();
+        const fullName =
+          [fn, ln].filter(Boolean).join(" ") ||
+          user.email?.split("@")[0] ||
+          `User ${perm.user_id}`;
+
+        const mccCodes: string[] = Array.isArray(perm.mcc_codes)
+          ? perm.mcc_codes
+          : [];
+        const mppCodes: string[] = Array.isArray(perm.mpp_codes)
+          ? perm.mpp_codes
+          : [];
+
+        const mappedRows: Row[] = mccCodes.length
+          ? mccCodes.map((mcc: string, idx: number) => ({
+              id: idx + 1,
+              userName: fullName,
+              mcc,
+              mpp: mppCodes.join(", "),
+            }))
+          : [
+              {
+                id: 1,
+                userName: fullName,
+                mcc: "-",
+                mpp: mppCodes.join(", ") || "-",
+              },
+            ];
+
+        setRows(mappedRows);
+        setPage(1);
+      })
+      .catch((err: any) => {
+        message.error(
+          typeof err === "string" ? err : "Failed to assign permissions"
+        );
+      });
+  };
 
   const columns = [
     {
@@ -261,7 +343,7 @@ const SectionAllocationDummy: React.FC = () => {
           showSearch
           value={selectedMccFilter}
           loading={loadingMcc}
-          filterOption={false} // remote search
+          filterOption={false}
           onSearch={(value) => {
             setMccSearch(value);
             dispatch(
@@ -331,7 +413,7 @@ const SectionAllocationDummy: React.FC = () => {
           ))}
         </Select>
 
-        <Button type="primary" className="bg-blue-500">
+        <Button type="primary" className="bg-blue-500" onClick={handleAssign}>
           Assign
         </Button>
       </div>
